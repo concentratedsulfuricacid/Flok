@@ -1,0 +1,61 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, HTTPException
+
+from app.domain.models import RebalanceResponse, SolveRequest
+from app.metrics.compute import compute_metrics
+from app.optimizer import pricing, solver
+from app.services.state_store import get_store
+
+router = APIRouter()
+
+
+@router.post("/rebalance", response_model=RebalanceResponse)
+def rebalance(request: SolveRequest) -> RebalanceResponse:
+    store = get_store()
+    if not store.users or not store.opps:
+        raise HTTPException(status_code=400, detail="No users/opportunities loaded. Call /seed first.")
+
+    users = list(store.users.values())
+    if request.user_ids:
+        user_set = set(request.user_ids)
+        users = [u for u in users if u.id in user_set]
+
+    opps = list(store.opps.values())
+    capacities = {opp.id: opp.capacity for opp in opps}
+
+    pricing_overrides = request.pricing.model_dump() if request.pricing else None
+
+    deltas = pricing.update_prices(store, capacities, overrides=pricing_overrides)
+    store.demand_window = {opp_id: 0 for opp_id in store.opps}
+
+    assignments, unassigned, recommendations, explanations = solver.solve(
+        users,
+        opps,
+        store,
+        weight_overrides=request.weights,
+        pricing_overrides=pricing_overrides,
+        apply_fairness=request.enable_fairness_boost,
+        lambda_fair_override=request.lambda_fair,
+        top_k=request.return_top_k_alternatives,
+    )
+
+    store.last_assignment = [(a.user_id, a.opp_id) for a in assignments]
+
+    metrics = compute_metrics(
+        users,
+        opps,
+        store.last_assignment,
+        store,
+        recommendations=recommendations,
+    )
+
+    return RebalanceResponse(
+        assignments=assignments,
+        unassigned_user_ids=unassigned,
+        recommendations=recommendations,
+        explanations=explanations,
+        prices=dict(store.prices),
+        metrics=metrics,
+        price_deltas=deltas,
+    )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from app.domain.models import RebalanceResponse, SolveRequest
+from app.domain.models import RebalanceResponse, RebalanceSummary, SolveRequest, TrendingItem
 from app.metrics.compute import compute_metrics
 from app.optimizer import pricing, solver
 from app.services.state_store import get_store
@@ -28,7 +28,7 @@ def rebalance(request: SolveRequest) -> RebalanceResponse:
     pricing_overrides = request.pricing.model_dump() if request.pricing else None
     capacities = {opp.id: opp.capacity for opp in opps}
     old_prices = dict(store.prices)
-    pulse_map = pricing.compute_pulses(store, capacities, overrides=pricing_overrides)
+    pulse_map = pricing.compute_pulses(store, capacities, overrides=pricing_overrides, record_history=True)
     deltas = {opp_id: pulse_map.get(opp_id, 0.0) - old_prices.get(opp_id, 0.0) for opp_id in capacities}
 
     assignments, unassigned, recommendations, explanations = solver.solve(
@@ -52,6 +52,23 @@ def rebalance(request: SolveRequest) -> RebalanceResponse:
         recommendations=recommendations,
     )
 
+    pulse_movers = [
+        TrendingItem(
+            event_id=opp.id,
+            title=opp.title,
+            pulse=store.prices.get(opp.id, 50.0),
+            pulse_delta=deltas.get(opp.id, 0.0),
+        )
+        for opp in opps
+    ]
+    pulse_movers.sort(key=lambda item: abs(item.pulse_delta), reverse=True)
+
+    summary = RebalanceSummary(
+        assigned_count=len(assignments),
+        unassigned_count=len(unassigned),
+        top_pulse_movers=pulse_movers[:3],
+    )
+
     return RebalanceResponse(
         assignments=assignments,
         unassigned_user_ids=unassigned,
@@ -60,4 +77,5 @@ def rebalance(request: SolveRequest) -> RebalanceResponse:
         prices=dict(store.prices),
         metrics=metrics,
         price_deltas=deltas,
+        summary=summary,
     )

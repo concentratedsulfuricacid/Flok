@@ -47,14 +47,26 @@ def compute_pulses(
     store: StateStore,
     capacities: Dict[str, int],
     overrides: dict | None = None,
+    record_history: bool = False,
 ) -> Dict[str, float]:
     """Compute per-opportunity pulses and store them in prices."""
     cfg = get_pricing_config(overrides)
     pulses: Dict[str, float] = {}
+    now = None
     for opp_id, cap in capacities.items():
         liquidity = cfg.liquidity_k * max(1, cap)
         net = store.net_demand.get(opp_id, 0.0)
         pulse = pulse_from_demand(net, liquidity)
         store.prices[opp_id] = pulse
         pulses[opp_id] = pulse
+        if record_history:
+            if now is None:
+                from datetime import datetime, timezone
+
+                now = datetime.now(timezone.utc).isoformat()
+            history = store.pulse_history.get(opp_id, [])
+            history.append((now, pulse))
+            if len(history) > 50:
+                history = history[-50:]
+            store.pulse_history[opp_id] = history
     return pulses

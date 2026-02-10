@@ -145,6 +145,39 @@ class StateStore:
                 self.net_demand[opp_id] = net
                 self.last_demand_ts[opp_id] = now
 
+    def _resolve_data_path(self, path_str: str) -> Path:
+        path = Path(path_str)
+        if path.is_absolute():
+            return path
+        api_root = Path(__file__).resolve().parents[2]
+        return api_root / path
+
+    def log_impression(self, user_id: str, opp_id: str, features: dict, pulse: float) -> None:
+        """Log an impression with feature snapshot for training."""
+        settings = get_settings()
+        ts = datetime.now(timezone.utc).isoformat()
+        payload = {
+            "user_id": user_id,
+            "opp_id": opp_id,
+            "ts": ts,
+            "features": features,
+            "pulse": pulse,
+        }
+        path = self._resolve_data_path(settings.rsvp_impressions_log_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(payload) + "\n")
+
+    def log_rsvp(self, user_id: str, opp_id: str) -> None:
+        """Log an RSVP event for training labels."""
+        settings = get_settings()
+        ts = datetime.now(timezone.utc).isoformat()
+        payload = {"user_id": user_id, "opp_id": opp_id, "ts": ts}
+        path = self._resolve_data_path(settings.rsvp_events_log_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(payload) + "\n")
+
     def snapshot(self) -> dict:
         """Return a snapshot of the current store state."""
         with self.lock:

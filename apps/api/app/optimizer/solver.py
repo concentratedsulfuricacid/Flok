@@ -8,6 +8,7 @@ from typing import Dict, Iterable, List, Tuple
 from app.core.config import get_settings
 from app.domain.features import compute_feature_vector
 from app.domain.models import Assignment, Opportunity, Recommendation, ScoreExplanation, User
+from app.ml import build_ml_feature_dict, get_model
 from app.optimizer import fairness, pricing
 
 logger = logging.getLogger(__name__)
@@ -79,19 +80,21 @@ def build_score_matrix(
                 continue
 
             goal_match = _goal_match(user, opp)
-            base_score = (
-                weights["w_interest"] * features["interest"]
-                + weights["w_goal"] * goal_match
-                + weights["w_group"] * features["group_match"]
-                - weights["w_travel"] * features["travel_penalty"]
-                - weights["w_intensity"] * features["intensity_mismatch"]
-                + weights["w_novelty"] * features["novelty_bonus"]
-            )
-
             pulse = pulse_map.get(opp.id, 50.0)
             pulse_centered = pulse - 50.0
+            ml_features = build_ml_feature_dict(
+                interest=features["interest"],
+                goal_match=goal_match,
+                group_match=features["group_match"],
+                travel_penalty=features["travel_penalty"],
+                intensity_mismatch=features["intensity_mismatch"],
+                novelty_bonus=features["novelty_bonus"],
+                pulse_centered=pulse_centered,
+                availability_ok=features["availability_ok"],
+            )
+            s_ml = get_model().predict_proba(ml_features)
             price_adjustment = -pricing_cfg.lambda_price * pulse_centered
-            score_adj = base_score + price_adjustment
+            score_adj = s_ml + price_adjustment
 
             boost = fairness.fairness_boost(user, fairness_rates) if apply_fairness else 0.0
             score_final = score_adj + (lambda_fair * boost if apply_fairness else 0.0)
@@ -107,7 +110,7 @@ def build_score_matrix(
                     "travel_penalty": features["travel_penalty"],
                     "intensity_mismatch": features["intensity_mismatch"],
                     "novelty_bonus": features["novelty_bonus"],
-                    "base_score": base_score,
+                    "s_ml": s_ml,
                     "price": pulse,
                     "pulse_centered": pulse_centered,
                     "price_adjustment": price_adjustment,

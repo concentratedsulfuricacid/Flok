@@ -33,6 +33,12 @@ def feed(user_id: str = Query(...), limit: int = Query(20, ge=1, le=100)) -> Fee
             continue
         expl = explanations.get(f"{user.id}|{opp.id}")
         features, _ = compute_feature_vector(user, opp, store.interactions)
+<<<<<<< HEAD
+        pulse = store.prices.get(opp.id, 50.0)
+        s_ml = expl.breakdown.get("s_ml", score) if expl else score
+
+=======
+>>>>>>> main
         items.append(
             FeedItem(
                 event_id=opp.id,
@@ -46,12 +52,42 @@ def feed(user_id: str = Query(...), limit: int = Query(20, ge=1, le=100)) -> Fee
                 group_size=opp.group_size,
                 intensity=opp.intensity,
                 beginner_friendly=opp.beginner_friendly,
+<<<<<<< HEAD
+                fit_score=float(s_ml),
+                pulse=float(pulse),
+=======
                 fit_score=score,
                 pulse=store.prices.get(opp.id, 50.0),
+>>>>>>> main
                 availability_ok=features["availability_ok"] > 0.5,
                 reasons=expl.reason_chips if expl else [],
             )
         )
 
+<<<<<<< HEAD
+    items.sort(key=lambda item: scored.get(item.event_id, item.fit_score), reverse=True)
+    items = items[:limit]
+
+    # Log impressions and shown events for training data
+    for item in items:
+        store.record_feedback({"user_id": user_id, "opp_id": item.event_id, "event": "shown"})
+        if item.event_id in scored:
+            expl = explanations.get(f"{user_id}|{item.event_id}")
+            features = expl.breakdown if expl else {}
+            feature_snapshot = {
+                "interest": features.get("interest", 0.0),
+                "goal_match": features.get("goal_match", 0.0),
+                "group_match": features.get("group_match", 0.0),
+                "travel_penalty": features.get("travel_penalty", 0.0),
+                "intensity_mismatch": features.get("intensity_mismatch", 0.0),
+                "novelty_bonus": features.get("novelty_bonus", 0.0),
+                "pulse_centered": features.get("pulse_centered", 0.0),
+                "availability_ok": 1.0 if item.availability_ok else 0.0,
+            }
+            store.log_impression(user_id, item.event_id, feature_snapshot, item.pulse)
+
+    return FeedResponse(user_id=user_id, items=items)
+=======
     items.sort(key=lambda item: item.fit_score, reverse=True)
     return FeedResponse(user_id=user_id, items=items[:limit])
+>>>>>>> main

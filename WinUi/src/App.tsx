@@ -1,3 +1,5 @@
+import FriendsPage from "./pages/FriendsPage";
+
 import React, { useMemo, useState } from "react";
 import { BrowserRouter, NavLink, Route, Routes, Navigate } from "react-router-dom";
 import {
@@ -159,7 +161,7 @@ export default function App() {
           {/* Tabs */}
           <Route path="/map" element={<EmptyPage title="Map" />} />
           <Route path="/nearby-events" element={<EmptyPage title="Nearby Events" />} />
-          <Route path="/friends" element={<EmptyPage title="Friends" />} />
+          <Route path="/friends" element={<FriendsPage />} />
           <Route path="/create-event" element={<EmptyPage title="Create Event" />} />
           <Route path="/profile" element={<EmptyPage title="Profile" />} />
 

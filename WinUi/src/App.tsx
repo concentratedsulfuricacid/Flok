@@ -1,20 +1,16 @@
-import FriendsPage from "./pages/FriendsPage";
-
 import React, { useMemo, useState } from "react";
 import { BrowserRouter, NavLink, Route, Routes, Navigate } from "react-router-dom";
-import {
-  Menu,
-  X,
-  MapPin,
-  CalendarDays,
-  Users,
-  PlusCircle,
-  User,
-} from "lucide-react";
+import { Menu, X, MapPin, CalendarDays, Users, PlusCircle, User } from "lucide-react";
+
+import MapPage from "./pages/MapPage";
+import EventsPage from "./pages/EventsPage";
+import FriendsPage from "./pages/FriendsPage";
+import CreateEventPage from "./pages/CreateEventPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const NAV_ITEMS = [
   { label: "Map", to: "/map", Icon: MapPin },
-  { label: "Nearby Events", to: "/nearby-events", Icon: CalendarDays },
+  { label: "Events", to: "/events", Icon: CalendarDays },
   { label: "Friends", to: "/friends", Icon: Users },
   { label: "Create Event", to: "/create-event", Icon: PlusCircle },
   { label: "Profile", to: "/profile", Icon: User },
@@ -155,15 +151,18 @@ export default function App() {
     <BrowserRouter>
       <Shell>
         <Routes>
-          {/* Default route */}
+          {/* Make Map the landing page */}
           <Route path="/" element={<Navigate to="/map" replace />} />
 
           {/* Tabs */}
-          <Route path="/map" element={<EmptyPage title="Map" />} />
-          <Route path="/nearby-events" element={<EmptyPage title="Nearby Events" />} />
+          <Route path="/map" element={<MapPage />} />
+          <Route path="/events" element={<EventsPage />} />
           <Route path="/friends" element={<FriendsPage />} />
-          <Route path="/create-event" element={<EmptyPage title="Create Event" />} />
-          <Route path="/profile" element={<EmptyPage title="Profile" />} />
+          <Route path="/create-event" element={<CreateEventPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+
+          {/* Backwards compatibility (if you used this old path before) */}
+          <Route path="/nearby-events" element={<Navigate to="/events" replace />} />
 
           {/* Fallback */}
           <Route path="*" element={<EmptyPage title="Not Found" />} />

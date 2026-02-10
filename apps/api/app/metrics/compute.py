@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Dict, Iterable, List, Tuple
 
 from app.domain.models import Assignment, MetricsResult, Opportunity, OppFill, Recommendation, User
-from app.optimizer import fairness
+from app.optimizer import fairness, pricing
 
 
 def _gini(values: List[float]) -> float:
@@ -92,19 +92,17 @@ def compute_metrics(
     rates = fairness.exposure_rates(users, assignment_pairs)
     fair_gap = fairness.fairness_gap(rates)
 
-    demand_by_opp = store.demand_window
+    capacities = {opp.id: opp.capacity for opp in opps}
+    pulse_map = pricing.compute_pulses(store, capacities)
     overdemanded: List[OppFill] = []
     for opp in opps:
-        cap = opp.capacity if opp.capacity > 0 else 1
-        demand = demand_by_opp.get(opp.id, 0)
-        fill = demand / float(cap)
-        overdemanded.append(
-            OppFill(opp_id=opp.id, fill=fill, price=store.prices.get(opp.id, 0.0))
-        )
+        pulse = pulse_map.get(opp.id, 50.0)
+        fill = pulse / 100.0
+        overdemanded.append(OppFill(opp_id=opp.id, fill=fill, price=pulse))
     top_overdemanded = sorted(overdemanded, key=lambda o: o.fill, reverse=True)[:3]
 
     underfilled = [
-        OppFill(opp_id=opp.id, fill=fill_by_opp.get(opp.id, 0.0), price=store.prices.get(opp.id, 0.0))
+        OppFill(opp_id=opp.id, fill=pulse_map.get(opp.id, 50.0) / 100.0, price=pulse_map.get(opp.id, 50.0))
         for opp in opps
     ]
     top_underfilled = sorted(underfilled, key=lambda o: o.fill)[:3]

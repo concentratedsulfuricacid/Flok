@@ -70,6 +70,7 @@ class PricingParams(BaseModel):
     p_min: Optional[float] = None
     p_max: Optional[float] = None
     lambda_price: Optional[float] = None
+    liquidity_k: Optional[float] = None
 
 
 class SolveRequest(BaseModel):
@@ -156,7 +157,7 @@ class FeedbackResponse(BaseModel):
     """Response payload for /feedback endpoint."""
 
     opp_id: str
-    demand: int
+    demand: float
     shown: int
     total_interactions: int
 
@@ -172,5 +173,5 @@ class MetricsResponse(BaseModel):
 
     metrics: MetricsResult
     prices: Dict[str, float]
-    demand_by_opp: Dict[str, int]
+    demand_by_opp: Dict[str, float]
     shown_by_opp: Dict[str, int]

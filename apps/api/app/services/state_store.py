@@ -3,11 +3,13 @@ from __future__ import annotations
 """In-memory state store with thread-safety for the Flok backend."""
 
 import json
+import math
 import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from app.core.config import get_settings
 from app.domain.models import Interaction, Opportunity, User
 from app.services import simulation
 
@@ -26,19 +28,23 @@ class StateStore:
             self.opps: Dict[str, Opportunity] = {}
             self.prices: Dict[str, float] = {}
             self.avg_fill: Dict[str, float] = {}
-            self.demand_window: Dict[str, int] = {}
+            self.net_demand: Dict[str, float] = {}
+            self.last_demand_ts: Dict[str, datetime] = {}
             self.shown_window: Dict[str, int] = {}
             self.interactions: List[Interaction] = []
             self.last_assignment: List[Tuple[str, str]] = []
 
     def _ensure_opp_state(self, opp_id: str) -> None:
         """Initialize per-opportunity pricing and counters if missing."""
+        now = datetime.utcnow()
         if opp_id not in self.prices:
             self.prices[opp_id] = 0.0
         if opp_id not in self.avg_fill:
             self.avg_fill[opp_id] = 1.0
-        if opp_id not in self.demand_window:
-            self.demand_window[opp_id] = 0
+        if opp_id not in self.net_demand:
+            self.net_demand[opp_id] = 0.0
+        if opp_id not in self.last_demand_ts:
+            self.last_demand_ts[opp_id] = now
         if opp_id not in self.shown_window:
             self.shown_window[opp_id] = 0
 
@@ -56,7 +62,8 @@ class StateStore:
             self.opps = {o["id"]: Opportunity.model_validate(o) for o in opps}
             self.prices = {}
             self.avg_fill = {}
-            self.demand_window = {}
+            self.net_demand = {}
+            self.last_demand_ts = {}
             self.shown_window = {}
             self.interactions = []
             self.last_assignment = []
@@ -71,7 +78,8 @@ class StateStore:
             self.opps = {o.id: o for o in opps}
             self.prices = {}
             self.avg_fill = {}
-            self.demand_window = {}
+            self.net_demand = {}
+            self.last_demand_ts = {}
             self.shown_window = {}
             self.interactions = []
             self.last_assignment = []
@@ -104,20 +112,40 @@ class StateStore:
             )
             if ev in {"shown", "clicked", "accepted", "declined"}:
                 self.shown_window[opp_id] = self.shown_window.get(opp_id, 0) + 1
-            if ev in {"clicked", "accepted"}:
-                self.demand_window[opp_id] = self.demand_window.get(opp_id, 0) + 1
+
+            delta = 0.0
+            if ev == "accepted":
+                delta = 1.0
+            elif ev == "declined":
+                delta = -0.5
+            elif ev == "clicked":
+                delta = 0.2
+
+            if delta != 0.0:
+                settings = get_settings()
+                now = datetime.utcnow()
+                last_ts = self.last_demand_ts.get(opp_id, now)
+                tau_hours = settings.demand_decay_tau_hours
+                net = self.net_demand.get(opp_id, 0.0)
+                if tau_hours > 0:
+                    dt = (now - last_ts).total_seconds()
+                    decay = math.exp(-dt / (tau_hours * 3600.0))
+                    net *= decay
+                net += delta
+                self.net_demand[opp_id] = net
+                self.last_demand_ts[opp_id] = now
 
     def snapshot(self) -> dict:
         """Return a snapshot of the current store state."""
         with self.lock:
             return {
-                "users": list(self.users.values()),
-                "opps": list(self.opps.values()),
+                "users": [u.model_dump() for u in self.users.values()],
+                "opps": [o.model_dump() for o in self.opps.values()],
                 "prices": dict(self.prices),
                 "avg_fill": dict(self.avg_fill),
-                "demand_window": dict(self.demand_window),
+                "net_demand": dict(self.net_demand),
                 "shown_window": dict(self.shown_window),
-                "interactions": list(self.interactions),
+                "interactions": [i.model_dump() for i in self.interactions],
                 "last_assignment": list(self.last_assignment),
             }
 

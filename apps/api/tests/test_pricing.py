@@ -1,9 +1,9 @@
 from app.domain.models import Opportunity
-from app.optimizer.pricing import update_prices
+from app.optimizer.pricing import compute_pulses, pulse_from_demand
 from app.services.state_store import StateStore
 
 
-def test_price_clamping_and_smoothing():
+def test_pulse_range():
     store = StateStore()
     opp = Opportunity(
         id="o1",
@@ -19,17 +19,17 @@ def test_price_clamping_and_smoothing():
     )
     store.opps = {opp.id: opp}
     store.prices = {opp.id: 0.0}
-    store.avg_fill = {opp.id: 0.0}
-    store.demand_window = {opp.id: 50}
+    store.net_demand = {opp.id: 50.0}
 
-    deltas = update_prices(
-        store,
-        capacities={opp.id: opp.capacity},
-        overrides={"eta": 1.0, "rho": 0.5, "p_min": -1.0, "p_max": 1.0},
-    )
+    pulses = compute_pulses(store, capacities={opp.id: opp.capacity}, overrides={"liquidity_k": 5.0})
+    pulse = pulses[opp.id]
 
-    # avg_fill should move toward fill=5.0
-    assert store.avg_fill[opp.id] > 0.0
-    # price should be clamped to p_max
-    assert store.prices[opp.id] <= 1.0
-    assert opp.id in deltas
+    assert 0.0 <= pulse <= 100.0
+    assert store.prices[opp.id] == pulse
+
+
+def test_pulse_monotonicity():
+    low = pulse_from_demand(-10.0, 5.0)
+    mid = pulse_from_demand(0.0, 5.0)
+    high = pulse_from_demand(10.0, 5.0)
+    assert low < mid < high

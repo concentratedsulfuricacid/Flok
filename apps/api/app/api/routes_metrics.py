@@ -24,6 +24,6 @@ def metrics() -> MetricsResponse:
     return MetricsResponse(
         metrics=metrics_result,
         prices=dict(store.prices),
-        demand_by_opp=dict(store.demand_window),
+        demand_by_opp=dict(store.net_demand),
         shown_by_opp=dict(store.shown_window),
     )

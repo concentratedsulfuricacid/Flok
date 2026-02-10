@@ -30,11 +30,9 @@ class Settings:
     """Typed configuration values used across the backend."""
 
     distance_scale_mins: float
-    pricing_eta: float
-    pricing_rho: float
-    pricing_p_min: float
-    pricing_p_max: float
     pricing_lambda: float
+    pricing_liquidity_k: float
+    demand_decay_tau_hours: float
     fairness_lambda: float
     cors_origins: list[str]
 
@@ -48,11 +46,9 @@ def get_settings() -> Settings:
         cors_origins = ["*"]
     return Settings(
         distance_scale_mins=_get_float("DISTANCE_SCALE_MINS", 10.0),
-        pricing_eta=_get_float("PRICING_ETA", 0.3),
-        pricing_rho=_get_float("PRICING_RHO", 0.2),
-        pricing_p_min=_get_float("PRICING_P_MIN", -3.0),
-        pricing_p_max=_get_float("PRICING_P_MAX", 3.0),
         pricing_lambda=_get_float("PRICING_LAMBDA", 1.0),
+        pricing_liquidity_k=_get_float("PRICING_LIQUIDITY_K", 5.0),
+        demand_decay_tau_hours=_get_float("DEMAND_DECAY_TAU_HOURS", 12.0),
         fairness_lambda=_get_float("FAIRNESS_LAMBDA", 0.5),
         cors_origins=cors_origins,
     )

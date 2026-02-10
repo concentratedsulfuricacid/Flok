@@ -25,12 +25,11 @@ def rebalance(request: SolveRequest) -> RebalanceResponse:
         users = [u for u in users if u.id in user_set]
 
     opps = list(store.opps.values())
-    capacities = {opp.id: opp.capacity for opp in opps}
-
     pricing_overrides = request.pricing.model_dump() if request.pricing else None
-
-    deltas = pricing.update_prices(store, capacities, overrides=pricing_overrides)
-    store.demand_window = {opp_id: 0 for opp_id in store.opps}
+    capacities = {opp.id: opp.capacity for opp in opps}
+    old_prices = dict(store.prices)
+    pulse_map = pricing.compute_pulses(store, capacities, overrides=pricing_overrides)
+    deltas = {opp_id: pulse_map.get(opp_id, 0.0) - old_prices.get(opp_id, 0.0) for opp_id in capacities}
 
     assignments, unassigned, recommendations, explanations = solver.solve(
         users,

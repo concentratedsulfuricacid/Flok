@@ -68,6 +68,8 @@ def build_score_matrix(
     explanations: Dict[str, ScoreExplanation] = {}
 
     interactions = store.interactions
+    capacities = {opp.id: opp.capacity for opp in opps}
+    pulse_map = pricing.compute_pulses(store, capacities, overrides=pricing_overrides)
 
     for user in users:
         score_matrix[user.id] = {}
@@ -86,8 +88,9 @@ def build_score_matrix(
                 + weights["w_novelty"] * features["novelty_bonus"]
             )
 
-            price = store.prices.get(opp.id, 0.0)
-            price_adjustment = -pricing_cfg.lambda_price * price
+            pulse = pulse_map.get(opp.id, 50.0)
+            pulse_centered = pulse - 50.0
+            price_adjustment = -pricing_cfg.lambda_price * pulse_centered
             score_adj = base_score + price_adjustment
 
             boost = fairness.fairness_boost(user, fairness_rates) if apply_fairness else 0.0
@@ -105,7 +108,8 @@ def build_score_matrix(
                     "intensity_mismatch": features["intensity_mismatch"],
                     "novelty_bonus": features["novelty_bonus"],
                     "base_score": base_score,
-                    "price": price,
+                    "price": pulse,
+                    "pulse_centered": pulse_centered,
                     "price_adjustment": price_adjustment,
                     "fairness_boost": boost,
                     "final_score": score_final,

@@ -19,7 +19,7 @@ def feedback(request: FeedbackRequest) -> FeedbackResponse:
 
     store.record_feedback(request)
 
-    demand = store.demand_window.get(request.opp_id, 0)
+    demand = store.net_demand.get(request.opp_id, 0.0)
     shown = store.shown_window.get(request.opp_id, 0)
     return FeedbackResponse(
         opp_id=request.opp_id,

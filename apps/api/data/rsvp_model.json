@@ -1,0 +1,25 @@
+{
+  "feature_order": [
+    "interest",
+    "goal_match",
+    "group_match",
+    "travel_penalty",
+    "intensity_mismatch",
+    "novelty_bonus",
+    "pulse_centered",
+    "availability_ok"
+  ],
+  "weights": [
+    -0.3275899598565552,
+    0.42938632291687717,
+    0.020457931464745477,
+    -0.5378478121889161,
+    -0.3419150831084507,
+    -0.22229779505355754,
+    0.0,
+    -0.4445955901071151
+  ],
+  "bias": -0.4445955901071151,
+  "trained_at": "2026-02-10T16:59:38.772673+00:00",
+  "num_examples": 14
+}

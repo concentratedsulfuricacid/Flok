@@ -8,11 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import router as api_router
 from app.core.config import get_settings
 from app.core.logging import setup_logging
+from app.ml import get_model
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     setup_logging()
+    # Load ML model on startup (falls back to default if missing)
+    get_model()
     app = FastAPI(title="Flok API", version="0.1.0")
 
     settings = get_settings()

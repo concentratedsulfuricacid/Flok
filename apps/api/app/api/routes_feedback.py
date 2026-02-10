@@ -18,6 +18,8 @@ def feedback(request: FeedbackRequest) -> FeedbackResponse:
         raise HTTPException(status_code=404, detail="Opportunity not found")
 
     store.record_feedback(request)
+    if request.event == "accepted" and request.user_id:
+        store.log_rsvp(request.user_id, request.opp_id)
 
     demand = store.net_demand.get(request.opp_id, 0.0)
     shown = store.shown_window.get(request.opp_id, 0)

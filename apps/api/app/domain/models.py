@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 GroupSize = Literal["small", "medium", "large"]
@@ -87,9 +87,11 @@ class SolveRequest(BaseModel):
 class FeedbackRequest(BaseModel):
     """Record a user interaction with an opportunity."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     user_id: str
-    opp_id: str
-    event: EventType
+    opp_id: str = Field(alias="event_id")
+    event: EventType = Field(alias="type")
 
 
 class Assignment(BaseModel):
@@ -160,6 +162,33 @@ class FeedbackResponse(BaseModel):
     demand: float
     shown: int
     total_interactions: int
+
+
+class FeedItem(BaseModel):
+    """A ranked event in the personalized feed."""
+
+    event_id: str
+    title: str
+    category: str
+    time_bucket: str
+    tags: List[str]
+    lat: float
+    lng: float
+    capacity: int
+    group_size: GroupSize
+    intensity: Intensity
+    beginner_friendly: bool
+    fit_score: float
+    pulse: float
+    availability_ok: bool
+    reasons: List[str] = Field(default_factory=list)
+
+
+class FeedResponse(BaseModel):
+    """Response payload for /feed."""
+
+    user_id: str
+    items: List[FeedItem]
 
 
 class RebalanceResponse(SolveResponse):

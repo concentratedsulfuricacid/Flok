@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import math
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 from app.core.config import get_settings
 from app.domain.models import Interaction, Opportunity, User
@@ -33,10 +33,12 @@ class StateStore:
             self.shown_window: Dict[str, int] = {}
             self.interactions: List[Interaction] = []
             self.last_assignment: List[Tuple[str, str]] = []
+            self.rsvps: Dict[str, Set[str]] = {}
+            self.pulse_history: Dict[str, List[Tuple[str, float]]] = {}
 
     def _ensure_opp_state(self, opp_id: str) -> None:
         """Initialize per-opportunity pricing and counters if missing."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if opp_id not in self.prices:
             self.prices[opp_id] = 0.0
         if opp_id not in self.avg_fill:
@@ -47,6 +49,10 @@ class StateStore:
             self.last_demand_ts[opp_id] = now
         if opp_id not in self.shown_window:
             self.shown_window[opp_id] = 0
+        if opp_id not in self.rsvps:
+            self.rsvps[opp_id] = set()
+        if opp_id not in self.pulse_history:
+            self.pulse_history[opp_id] = []
 
     def load_fixture(self, path: str) -> None:
         """Load users/opps from a JSON fixture file."""
@@ -67,6 +73,8 @@ class StateStore:
             self.shown_window = {}
             self.interactions = []
             self.last_assignment = []
+            self.rsvps = {}
+            self.pulse_history = {}
             for opp_id in self.opps:
                 self._ensure_opp_state(opp_id)
 
@@ -83,6 +91,8 @@ class StateStore:
             self.shown_window = {}
             self.interactions = []
             self.last_assignment = []
+            self.rsvps = {}
+            self.pulse_history = {}
             for opp_id in self.opps:
                 self._ensure_opp_state(opp_id)
 
@@ -107,7 +117,7 @@ class StateStore:
                     user_id=user_id or "unknown",
                     opp_id=opp_id,
                     event=ev,
-                    ts=datetime.utcnow(),
+                    ts=datetime.now(timezone.utc),
                 )
             )
             if ev in {"shown", "clicked", "accepted", "declined"}:
@@ -123,7 +133,7 @@ class StateStore:
 
             if delta != 0.0:
                 settings = get_settings()
-                now = datetime.utcnow()
+                now = datetime.now(timezone.utc)
                 last_ts = self.last_demand_ts.get(opp_id, now)
                 tau_hours = settings.demand_decay_tau_hours
                 net = self.net_demand.get(opp_id, 0.0)
@@ -134,6 +144,39 @@ class StateStore:
                 net += delta
                 self.net_demand[opp_id] = net
                 self.last_demand_ts[opp_id] = now
+
+    def _resolve_data_path(self, path_str: str) -> Path:
+        path = Path(path_str)
+        if path.is_absolute():
+            return path
+        api_root = Path(__file__).resolve().parents[2]
+        return api_root / path
+
+    def log_impression(self, user_id: str, opp_id: str, features: dict, pulse: float) -> None:
+        """Log an impression with feature snapshot for training."""
+        settings = get_settings()
+        ts = datetime.now(timezone.utc).isoformat()
+        payload = {
+            "user_id": user_id,
+            "opp_id": opp_id,
+            "ts": ts,
+            "features": features,
+            "pulse": pulse,
+        }
+        path = self._resolve_data_path(settings.rsvp_impressions_log_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(payload) + "\n")
+
+    def log_rsvp(self, user_id: str, opp_id: str) -> None:
+        """Log an RSVP event for training labels."""
+        settings = get_settings()
+        ts = datetime.now(timezone.utc).isoformat()
+        payload = {"user_id": user_id, "opp_id": opp_id, "ts": ts}
+        path = self._resolve_data_path(settings.rsvp_events_log_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(payload) + "\n")
 
     def snapshot(self) -> dict:
         """Return a snapshot of the current store state."""
@@ -147,6 +190,8 @@ class StateStore:
                 "shown_window": dict(self.shown_window),
                 "interactions": [i.model_dump() for i in self.interactions],
                 "last_assignment": list(self.last_assignment),
+                "rsvps": {opp_id: list(users) for opp_id, users in self.rsvps.items()},
+                "pulse_history": dict(self.pulse_history),
             }
 
 

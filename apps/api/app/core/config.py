@@ -35,6 +35,9 @@ class Settings:
     demand_decay_tau_hours: float
     fairness_lambda: float
     cors_origins: list[str]
+    rsvp_impressions_log_path: str
+    rsvp_events_log_path: str
+    rsvp_model_path: str
 
 
 @lru_cache(maxsize=1)
@@ -51,4 +54,7 @@ def get_settings() -> Settings:
         demand_decay_tau_hours=_get_float("DEMAND_DECAY_TAU_HOURS", 12.0),
         fairness_lambda=_get_float("FAIRNESS_LAMBDA", 0.5),
         cors_origins=cors_origins,
+        rsvp_impressions_log_path=_get_str("RSVP_IMPRESSIONS_LOG_PATH", "data/impressions.jsonl"),
+        rsvp_events_log_path=_get_str("RSVP_EVENTS_LOG_PATH", "data/rsvps.jsonl"),
+        rsvp_model_path=_get_str("RSVP_MODEL_PATH", "data/rsvp_model.json"),
     )

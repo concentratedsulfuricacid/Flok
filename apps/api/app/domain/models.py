@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Pydantic models for the Flok API domain and request/response payloads."""
+
 from datetime import datetime
 from typing import Dict, List, Literal, Optional
 
@@ -12,6 +14,8 @@ EventType = Literal["shown", "clicked", "accepted", "declined", "attended"]
 
 
 class User(BaseModel):
+    """A user with preferences, constraints, and optional cohort for fairness."""
+
     id: str
     interest_tags: List[str] = Field(default_factory=list)
     lat: float
@@ -25,6 +29,8 @@ class User(BaseModel):
 
 
 class Opportunity(BaseModel):
+    """An event/opportunity that users can be matched to."""
+
     id: str
     title: str
     tags: List[str] = Field(default_factory=list)
@@ -39,6 +45,8 @@ class Opportunity(BaseModel):
 
 
 class Interaction(BaseModel):
+    """A user interaction event with an opportunity."""
+
     user_id: str
     opp_id: str
     event: EventType
@@ -46,6 +54,8 @@ class Interaction(BaseModel):
 
 
 class SeedRequest(BaseModel):
+    """Request payload to seed data from a fixture or generate synthetic data."""
+
     mode: Literal["fixture", "synthetic"]
     num_users: Optional[int] = None
     num_opps: Optional[int] = None
@@ -53,6 +63,8 @@ class SeedRequest(BaseModel):
 
 
 class PricingParams(BaseModel):
+    """Optional pricing parameter overrides for a solve/rebalance run."""
+
     eta: Optional[float] = None
     rho: Optional[float] = None
     p_min: Optional[float] = None
@@ -61,6 +73,8 @@ class PricingParams(BaseModel):
 
 
 class SolveRequest(BaseModel):
+    """Request payload to solve assignments with optional overrides."""
+
     weights: Optional[Dict[str, float]] = None
     pricing: Optional[PricingParams] = None
     user_ids: Optional[List[str]] = None
@@ -70,34 +84,46 @@ class SolveRequest(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
+    """Record a user interaction with an opportunity."""
+
     user_id: str
     opp_id: str
     event: EventType
 
 
 class Assignment(BaseModel):
+    """A single user-to-opportunity assignment."""
+
     user_id: str
     opp_id: str
 
 
 class Recommendation(BaseModel):
+    """Primary and alternative recommendations for a user."""
+
     primary: Optional[str] = None
     alternatives: List[str] = Field(default_factory=list)
 
 
 class ScoreExplanation(BaseModel):
+    """Explain a score with breakdown and human-readable reason chips."""
+
     score: float
     breakdown: Dict[str, float]
     reason_chips: List[str] = Field(default_factory=list)
 
 
 class OppFill(BaseModel):
+    """Opportunity fill summary used in metrics dashboards."""
+
     opp_id: str
     fill: float
     price: float
 
 
 class MetricsResult(BaseModel):
+    """Aggregated metrics for dashboard display."""
+
     utilization: float
     avg_fill_ratio: float
     fairness_gap: float
@@ -108,6 +134,8 @@ class MetricsResult(BaseModel):
 
 
 class SolveResponse(BaseModel):
+    """Response payload for /solve and /rebalance endpoints."""
+
     assignments: List[Assignment]
     unassigned_user_ids: List[str]
     recommendations: Dict[str, Recommendation]
@@ -117,12 +145,16 @@ class SolveResponse(BaseModel):
 
 
 class SeedResponse(BaseModel):
+    """Response payload for /seed endpoint."""
+
     num_users: int
     num_opps: int
     prices: Dict[str, float]
 
 
 class FeedbackResponse(BaseModel):
+    """Response payload for /feedback endpoint."""
+
     opp_id: str
     demand: int
     shown: int
@@ -130,10 +162,14 @@ class FeedbackResponse(BaseModel):
 
 
 class RebalanceResponse(SolveResponse):
+    """Solve response with price deltas after a rebalance."""
+
     price_deltas: Dict[str, float]
 
 
 class MetricsResponse(BaseModel):
+    """Response payload for /metrics endpoint."""
+
     metrics: MetricsResult
     prices: Dict[str, float]
     demand_by_opp: Dict[str, int]

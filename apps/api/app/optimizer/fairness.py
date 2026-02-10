@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+"""Fairness metrics and boost logic for cohort exposure."""
+
 from typing import Dict, Iterable, List, Tuple
 
 from app.domain.models import User
 
 
 def exposure_rates(users: Iterable[User], assignments: List[Tuple[str, str]]) -> Dict[str, float]:
+    """Compute exposure rate per cohort given assignments."""
     cohort_totals: Dict[str, int] = {}
     cohort_assigned: Dict[str, int] = {}
     user_map = {u.id: u for u in users}
@@ -29,12 +32,14 @@ def exposure_rates(users: Iterable[User], assignments: List[Tuple[str, str]]) ->
 
 
 def fairness_gap(rates: Dict[str, float]) -> float:
+    """Compute max-min gap across cohort exposure rates."""
     if not rates:
         return 0.0
     return max(rates.values()) - min(rates.values())
 
 
 def fairness_boost(user: User, rates: Dict[str, float]) -> float:
+    """Boost score for users in underexposed cohorts."""
     if user.cohort is None or not rates:
         return 0.0
     max_rate = max(rates.values())

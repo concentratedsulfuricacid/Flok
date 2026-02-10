@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Synthetic data generation helpers for demos and tests."""
+
 import random
 from typing import List, Tuple
 
@@ -27,16 +29,19 @@ COHORTS = ["newcomer", "regular", "veteran"]
 
 
 def _pick_tags(rng: random.Random, k_min: int = 2, k_max: int = 4) -> List[str]:
+    """Pick a random set of tags."""
     k = rng.randint(k_min, k_max)
     return rng.sample(TAGS, k=k)
 
 
 def _clustered_point(rng: random.Random, centers: List[Tuple[float, float]]) -> Tuple[float, float]:
+    """Sample a point near a random cluster center."""
     cx, cy = rng.choice(centers)
     return cx + rng.uniform(-0.5, 0.5), cy + rng.uniform(-0.5, 0.5)
 
 
 def generate_synthetic(num_users: int, num_opps: int, seed: int | None = None) -> Tuple[List[User], List[Opportunity]]:
+    """Generate a synthetic population of users and opportunities."""
     rng = random.Random(seed)
     centers = [(-2.0, -1.5), (0.0, 1.0), (2.5, -0.5)]
 
@@ -81,6 +86,7 @@ def generate_synthetic(num_users: int, num_opps: int, seed: int | None = None) -
 
 
 def shock_popularity(store, opp_id: str | None = None, clicks: int = 15, accepts: int = 8) -> str | None:
+    """Simulate a sudden popularity spike for one opportunity."""
     if not store.opps:
         return None
     if opp_id is None:

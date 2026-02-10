@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Configuration helpers and environment-driven settings."""
+
 import os
 from dataclasses import dataclass
 from functools import lru_cache
@@ -25,6 +27,8 @@ def _get_str(name: str, default: str) -> str:
 
 @dataclass(frozen=True)
 class Settings:
+    """Typed configuration values used across the backend."""
+
     distance_scale_mins: float
     pricing_eta: float
     pricing_rho: float
@@ -37,6 +41,7 @@ class Settings:
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """Load settings from environment with defaults."""
     cors_raw = _get_str("CORS_ORIGINS", "*")
     cors_origins = [o.strip() for o in cors_raw.split(",") if o.strip()]
     if not cors_origins:

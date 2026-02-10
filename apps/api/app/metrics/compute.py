@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Metrics computation for dashboard analytics."""
+
 from typing import Dict, Iterable, List, Tuple
 
 from app.domain.models import Assignment, MetricsResult, Opportunity, OppFill, Recommendation, User
@@ -7,6 +9,7 @@ from app.optimizer import fairness
 
 
 def _gini(values: List[float]) -> float:
+    """Compute Gini coefficient for a list of non-negative values."""
     if not values:
         return 0.0
     sorted_vals = sorted(values)
@@ -26,6 +29,7 @@ def _diversity_per_user(
     recommendations: Dict[str, Recommendation] | None,
     interactions: List,
 ) -> Dict[str, int]:
+    """Compute diversity as unique categories per user."""
     diversity: Dict[str, int] = {}
     if recommendations:
         for user_id, rec in recommendations.items():
@@ -56,6 +60,7 @@ def compute_metrics(
     store,
     recommendations: Dict[str, Recommendation] | None = None,
 ) -> MetricsResult:
+    """Compute aggregate marketplace metrics."""
     opps_by_id = {opp.id: opp for opp in opps}
     total_capacity = sum(max(0, opp.capacity) for opp in opps)
     assigned_seats = len(assignments)

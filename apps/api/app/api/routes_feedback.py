@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Feedback endpoint: record user interactions."""
+
 from fastapi import APIRouter, HTTPException
 
 from app.domain.models import FeedbackRequest, FeedbackResponse
@@ -10,6 +12,7 @@ router = APIRouter()
 
 @router.post("/feedback", response_model=FeedbackResponse)
 def feedback(request: FeedbackRequest) -> FeedbackResponse:
+    """Record feedback and return demand counters."""
     store = get_store()
     if request.opp_id not in store.opps:
         raise HTTPException(status_code=404, detail="Opportunity not found")

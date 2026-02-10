@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""In-memory state store with thread-safety for the Flok backend."""
+
 import json
 import threading
 from datetime import datetime
@@ -11,11 +13,14 @@ from app.services import simulation
 
 
 class StateStore:
+    """Thread-safe in-memory store for users, opps, prices, and interactions."""
+
     def __init__(self) -> None:
         self.lock = threading.Lock()
         self.reset()
 
     def reset(self) -> None:
+        """Clear all in-memory state."""
         with self.lock:
             self.users: Dict[str, User] = {}
             self.opps: Dict[str, Opportunity] = {}
@@ -27,6 +32,7 @@ class StateStore:
             self.last_assignment: List[Tuple[str, str]] = []
 
     def _ensure_opp_state(self, opp_id: str) -> None:
+        """Initialize per-opportunity pricing and counters if missing."""
         if opp_id not in self.prices:
             self.prices[opp_id] = 0.0
         if opp_id not in self.avg_fill:
@@ -37,6 +43,7 @@ class StateStore:
             self.shown_window[opp_id] = 0
 
     def load_fixture(self, path: str) -> None:
+        """Load users/opps from a JSON fixture file."""
         path_obj = Path(path)
         if not path_obj.exists():
             repo_root = Path(__file__).resolve().parents[4]
@@ -57,6 +64,7 @@ class StateStore:
                 self._ensure_opp_state(opp_id)
 
     def generate_synthetic(self, num_users: int, num_opps: int) -> None:
+        """Generate synthetic users/opps for demos."""
         users, opps = simulation.generate_synthetic(num_users, num_opps)
         with self.lock:
             self.users = {u.id: u for u in users}
@@ -71,6 +79,7 @@ class StateStore:
                 self._ensure_opp_state(opp_id)
 
     def record_feedback(self, event) -> None:
+        """Record an interaction and update demand/shown windows."""
         if isinstance(event, dict):
             user_id = event.get("user_id")
             opp_id = event.get("opp_id")
@@ -99,6 +108,7 @@ class StateStore:
                 self.demand_window[opp_id] = self.demand_window.get(opp_id, 0) + 1
 
     def snapshot(self) -> dict:
+        """Return a snapshot of the current store state."""
         with self.lock:
             return {
                 "users": list(self.users.values()),
@@ -116,4 +126,5 @@ _store = StateStore()
 
 
 def get_store() -> StateStore:
+    """Get the singleton state store."""
     return _store

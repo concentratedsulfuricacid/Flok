@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Market-maker pricing updates based on recent demand signals."""
+
 from dataclasses import dataclass
 from typing import Dict
 
@@ -9,6 +11,8 @@ from app.services.state_store import StateStore
 
 @dataclass
 class PricingConfig:
+    """Pricing configuration parameters."""
+
     eta: float
     rho: float
     p_min: float
@@ -17,6 +21,7 @@ class PricingConfig:
 
 
 def get_pricing_config(overrides: dict | None = None) -> PricingConfig:
+    """Resolve pricing config using defaults and optional overrides."""
     settings = get_settings()
     cfg = PricingConfig(
         eta=settings.pricing_eta,
@@ -33,6 +38,7 @@ def get_pricing_config(overrides: dict | None = None) -> PricingConfig:
 
 
 def update_prices(store: StateStore, capacities: Dict[str, int], overrides: dict | None = None) -> Dict[str, float]:
+    """Update prices in the store based on demand and capacity."""
     cfg = get_pricing_config(overrides)
     deltas: Dict[str, float] = {}
     for opp_id, cap in capacities.items():

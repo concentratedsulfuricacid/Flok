@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Assignment solver and scoring pipeline for user-opportunity matching."""
+
 import logging
 from typing import Dict, Iterable, List, Tuple
 
@@ -28,6 +30,7 @@ GOAL_HINTS = {
 
 
 def _goal_match(user: User, opp: Opportunity) -> float:
+    """Return 1.0 if the opportunity aligns with user's goal, else 0.0."""
     if not user.goal:
         return 0.0
     hints = GOAL_HINTS.get(user.goal, set())
@@ -36,6 +39,7 @@ def _goal_match(user: User, opp: Opportunity) -> float:
 
 
 def _merge_weights(overrides: Dict[str, float] | None) -> Dict[str, float]:
+    """Merge default weights with optional overrides."""
     merged = dict(DEFAULT_WEIGHTS)
     if overrides:
         for key, value in overrides.items():
@@ -53,6 +57,7 @@ def build_score_matrix(
     apply_fairness: bool = False,
     lambda_fair_override: float | None = None,
 ) -> Tuple[Dict[str, Dict[str, float]], Dict[str, ScoreExplanation]]:
+    """Compute score matrix and explanations for all user-opportunity pairs."""
     settings = get_settings()
     weights = _merge_weights(weight_overrides)
     pricing_cfg = pricing.get_pricing_config(pricing_overrides)
@@ -117,6 +122,7 @@ def solve_assignment(
     score_matrix: Dict[str, Dict[str, float]],
     capacities: Dict[str, int],
 ) -> Tuple[List[Tuple[str, str]], List[str]]:
+    """Solve capacity-constrained assignment with OR-Tools or greedy fallback."""
     try:
         from ortools.graph import pywrapgraph  # type: ignore
 
@@ -132,6 +138,7 @@ def _solve_with_ortools(
     score_matrix: Dict[str, Dict[str, float]],
     capacities: Dict[str, int],
 ) -> Tuple[List[Tuple[str, str]], List[str]]:
+    """Solve with OR-Tools min-cost flow (allows unassigned users)."""
     from ortools.graph import pywrapgraph  # type: ignore
 
     scores = [score for user_scores in score_matrix.values() for score in user_scores.values()]
@@ -213,6 +220,7 @@ def _solve_greedy(
     score_matrix: Dict[str, Dict[str, float]],
     capacities: Dict[str, int],
 ) -> Tuple[List[Tuple[str, str]], List[str]]:
+    """Greedy fallback assignment used if OR-Tools is unavailable."""
     remaining = {opp_id: max(0, cap) for opp_id, cap in capacities.items()}
     assignments: List[Tuple[str, str]] = []
     assigned_users = set()
@@ -240,6 +248,7 @@ def build_recommendations(
     assignments: List[Tuple[str, str]],
     top_k: int,
 ) -> Dict[str, Recommendation]:
+    """Build primary + alternative recommendations per user."""
     assigned = {user_id: opp_id for user_id, opp_id in assignments}
     recommendations: Dict[str, Recommendation] = {}
 
@@ -266,6 +275,7 @@ def solve(
     lambda_fair_override: float | None = None,
     top_k: int = 3,
 ) -> Tuple[List[Assignment], List[str], Dict[str, Recommendation], Dict[str, ScoreExplanation]]:
+    """End-to-end solver: score, assign, and generate recommendations."""
     score_matrix, explanations = build_score_matrix(
         users,
         opps,

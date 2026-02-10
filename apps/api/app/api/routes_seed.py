@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Seed endpoint: load fixture or generate synthetic data."""
+
 from fastapi import APIRouter, HTTPException
 
 from app.domain.models import SeedRequest, SeedResponse
@@ -10,6 +12,7 @@ router = APIRouter()
 
 @router.post("/seed", response_model=SeedResponse)
 def seed(request: SeedRequest) -> SeedResponse:
+    """Load data into the store and initialize pricing state."""
     store = get_store()
     if request.mode == "fixture":
         if not request.fixture_path:

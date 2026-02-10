@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Solve endpoint: compute scores, assignments, and recommendations."""
+
 from fastapi import APIRouter, HTTPException
 
 from app.domain.models import SolveRequest, SolveResponse
@@ -12,6 +14,7 @@ router = APIRouter()
 
 @router.post("/solve", response_model=SolveResponse)
 def solve_route(request: SolveRequest) -> SolveResponse:
+    """Run the solver and return assignments, explanations, and metrics."""
     store = get_store()
     if not store.users or not store.opps:
         raise HTTPException(status_code=400, detail="No users/opportunities loaded. Call /seed first.")

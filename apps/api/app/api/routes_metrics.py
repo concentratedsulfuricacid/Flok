@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Metrics endpoint: serve dashboard metrics and demand state."""
+
 from fastapi import APIRouter
 
 from app.domain.models import MetricsResponse
@@ -11,6 +13,7 @@ router = APIRouter()
 
 @router.get("/metrics", response_model=MetricsResponse)
 def metrics() -> MetricsResponse:
+    """Return latest metrics and pricing state."""
     store = get_store()
     users = list(store.users.values())
     opps = list(store.opps.values())

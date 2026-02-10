@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Rebalance endpoint: update prices and recompute assignments."""
+
 from fastapi import APIRouter, HTTPException
 
 from app.domain.models import RebalanceResponse, SolveRequest
@@ -12,6 +14,7 @@ router = APIRouter()
 
 @router.post("/rebalance", response_model=RebalanceResponse)
 def rebalance(request: SolveRequest) -> RebalanceResponse:
+    """Update prices from demand and re-run the solver."""
     store = get_store()
     if not store.users or not store.opps:
         raise HTTPException(status_code=400, detail="No users/opportunities loaded. Call /seed first.")

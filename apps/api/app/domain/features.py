@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Feature computation for user-opportunity scoring."""
+
 import math
 from typing import Dict, List, Tuple
 
@@ -10,6 +12,7 @@ FeatureVector = Dict[str, float]
 
 
 def interest_jaccard(tags_u: List[str], tags_o: List[str]) -> float:
+    """Compute Jaccard similarity between user and opportunity tag sets."""
     set_u = {t.lower() for t in tags_u if t}
     set_o = {t.lower() for t in tags_o if t}
     if not set_u and not set_o:
@@ -22,12 +25,14 @@ def interest_jaccard(tags_u: List[str], tags_o: List[str]) -> float:
 
 
 def travel_minutes(user: User, opp: Opportunity) -> float:
+    """Estimate travel minutes using Euclidean distance and scale factor."""
     settings = get_settings()
     dist = math.sqrt((user.lat - opp.lat) ** 2 + (user.lng - opp.lng) ** 2)
     return dist * settings.distance_scale_mins
 
 
 def travel_penalty(user: User, opp: Opportunity) -> float:
+    """Normalize travel time into a [0,1] penalty capped at 1."""
     mins = travel_minutes(user, opp)
     if user.max_travel_mins <= 0:
         return 1.0
@@ -35,12 +40,14 @@ def travel_penalty(user: User, opp: Opportunity) -> float:
 
 
 def availability_ok(user: User, opp: Opportunity) -> bool:
+    """Check if opportunity time bucket matches user availability."""
     if not user.availability:
         return True
     return opp.time_bucket in user.availability
 
 
 def group_size_match(user: User, opp: Opportunity) -> float:
+    """Compute match score between preferred and offered group sizes."""
     mapping = {"small": 0.0, "medium": 0.5, "large": 1.0}
     pref = mapping.get(user.group_pref, 0.5)
     size = mapping.get(opp.group_size, 0.5)
@@ -48,6 +55,7 @@ def group_size_match(user: User, opp: Opportunity) -> float:
 
 
 def intensity_mismatch(user: User, opp: Opportunity) -> float:
+    """Compute mismatch between user intensity preference and opportunity."""
     mapping = {"low": 0.0, "med": 0.5, "high": 1.0}
     pref = mapping.get(user.intensity_pref, 0.5)
     intensity = mapping.get(opp.intensity, 0.5)
@@ -55,6 +63,7 @@ def intensity_mismatch(user: User, opp: Opportunity) -> float:
 
 
 def novelty_bonus(user: User, opp: Opportunity, interactions: List | None) -> float:
+    """Return novelty bonus based on whether the user has seen the opp."""
     if not interactions:
         return 0.5
     for interaction in interactions:
@@ -70,6 +79,7 @@ def compute_feature_vector(
     opp: Opportunity,
     interactions: List[dict] | None = None,
 ) -> Tuple[FeatureVector, List[str]]:
+    """Compute feature vector and reason chips for a user-opportunity pair."""
     interest = interest_jaccard(user.interest_tags, opp.tags)
     travel_mins = travel_minutes(user, opp)
     penalty = travel_penalty(user, opp)

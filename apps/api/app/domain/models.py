@@ -3,9 +3,14 @@ from __future__ import annotations
 """Pydantic models for the Flok API domain and request/response payloads."""
 
 from datetime import datetime
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Tuple
 
+<<<<<<< HEAD
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+=======
+from pydantic import BaseModel, Field
+from pydantic import AliasChoices, ConfigDict
+>>>>>>> main
 
 
 GroupSize = Literal["small", "medium", "large"]
@@ -33,12 +38,15 @@ class Opportunity(BaseModel):
 
     id: str
     title: str
+    description: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     category: str
     time_bucket: str
+    time: Optional[str] = None
     lat: float
     lng: float
     capacity: int
+    min_attendees: Optional[int] = None
     group_size: GroupSize
     intensity: Intensity
     beginner_friendly: bool = True
@@ -164,6 +172,34 @@ class FeedbackResponse(BaseModel):
     total_interactions: int
 
 
+<<<<<<< HEAD
+=======
+class UserUpsertRequest(BaseModel):
+    """Create or update a user profile."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    user_id: Optional[str] = None
+    interest_tags: List[str] = Field(
+        default_factory=list, validation_alias=AliasChoices("interests", "tags")
+    )
+    lat: float = 0.0
+    lng: float = 0.0
+    max_travel_mins: int = 30
+    availability: List[str] = Field(default_factory=list)
+    group_pref: GroupSize = "medium"
+    intensity_pref: Intensity = "med"
+    goal: Optional[Literal["friends", "active", "volunteer", "learn"]] = None
+    cohort: Optional[str] = None
+
+
+class UserUpsertResponse(BaseModel):
+    """Response payload for /users."""
+
+    user_id: str
+
+
+>>>>>>> main
 class FeedItem(BaseModel):
     """A ranked event in the personalized feed."""
 
@@ -191,10 +227,118 @@ class FeedResponse(BaseModel):
     items: List[FeedItem]
 
 
+<<<<<<< HEAD
+=======
+class EventCreateRequest(BaseModel):
+    """Create a new event/opportunity."""
+
+    title: str
+    description: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    category: str = "community"
+    time_bucket: str = "weeknights"
+    time: Optional[str] = None
+    lat: float = 0.0
+    lng: float = 0.0
+    capacity: int = 10
+    min_attendees: Optional[int] = None
+    group_size: GroupSize = "medium"
+    intensity: Intensity = "med"
+    beginner_friendly: bool = True
+
+
+class EventUpdateRequest(BaseModel):
+    """Update an event's mutable fields."""
+
+    title: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+    category: Optional[str] = None
+    time_bucket: Optional[str] = None
+    time: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    capacity: Optional[int] = None
+    min_attendees: Optional[int] = None
+    group_size: Optional[GroupSize] = None
+    intensity: Optional[Intensity] = None
+    beginner_friendly: Optional[bool] = None
+
+
+class EventDetailResponse(BaseModel):
+    """Response payload for event detail."""
+
+    event: Opportunity
+    pulse: float
+    spots_left: int
+    pulse_history: Optional[List[Tuple[str, float]]] = None
+
+
+class EventCreateResponse(BaseModel):
+    """Response payload for event creation."""
+
+    event_id: str
+
+
+class EventUpdateResponse(BaseModel):
+    """Response payload for event updates."""
+
+    event_id: str
+
+
+class RSVPRequest(BaseModel):
+    """Request payload for RSVP."""
+
+    user_id: str
+
+
+class RSVPResponse(BaseModel):
+    """Response payload for RSVP."""
+
+    event_id: str
+    status: Literal["ACCEPTED", "FULL"]
+    spots_left: int
+
+
+class ExplanationResponse(BaseModel):
+    """Response payload for explain endpoint."""
+
+    event_id: str
+    user_id: str
+    score: float
+    breakdown: Dict[str, float]
+    reasons: List[str] = Field(default_factory=list)
+
+
+class TrendingItem(BaseModel):
+    """Trending event info."""
+
+    event_id: str
+    title: str
+    pulse: float
+    pulse_delta: float
+
+
+class TrendingResponse(BaseModel):
+    """Response payload for /trending."""
+
+    items: List[TrendingItem]
+
+
+>>>>>>> main
 class RebalanceResponse(SolveResponse):
     """Solve response with price deltas after a rebalance."""
 
     price_deltas: Dict[str, float]
+    summary: Optional["RebalanceSummary"] = None
+
+
+class RebalanceSummary(BaseModel):
+    """Summary payload for rebalance."""
+
+    assigned_count: int
+    unassigned_count: int
+    top_pulse_movers: List[TrendingItem] = Field(default_factory=list)
 
 
 class MetricsResponse(BaseModel):

@@ -1,0 +1,239 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+:root {
+  color-scheme: light;
+  --ink: #0c0f14;
+  --sand: #f5efe7;
+  --sand-strong: #ebe2d5;
+  --teal: #0f4c5c;
+  --teal-bright: #1b8a9b;
+  --coral: #ef5b5b;
+  --sun: #f4b860;
+  --mint: #b7e3d1;
+  --stone: #6b6f76;
+  --card: #fbf8f3;
+  --shadow: 0 20px 60px rgba(12, 15, 20, 0.15);
+  --radius: 22px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Space Grotesk", sans-serif;
+  background: radial-gradient(circle at 15% 20%, rgba(27, 138, 155, 0.14), transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(239, 91, 91, 0.18), transparent 40%),
+    linear-gradient(160deg, #fff7ec 0%, #f3e6d4 40%, #f8f2ea 100%);
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 56px 24px 80px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Fraunces", serif;
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+p {
+  margin: 0;
+  color: var(--stone);
+  line-height: 1.6;
+}
+
+button {
+  font-family: inherit;
+}
+
+.hero {
+  display: grid;
+  gap: 24px;
+  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-bottom: 48px;
+}
+
+.hero-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(15, 76, 92, 0.08), transparent 50%);
+  pointer-events: none;
+}
+
+.hero-title {
+  font-size: clamp(2.4rem, 3vw, 3.4rem);
+}
+
+.hero-subtitle {
+  font-size: 1.05rem;
+}
+
+.stat-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.stat-card {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 12px 30px rgba(12, 15, 20, 0.08);
+  border: 1px solid rgba(15, 76, 92, 0.08);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal);
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(15, 76, 92, 0.08);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--teal);
+  color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 20px rgba(15, 76, 92, 0.22);
+}
+
+.btn.secondary {
+  background: var(--coral);
+  box-shadow: 0 10px 20px rgba(239, 91, 91, 0.2);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--teal);
+  border: 1px solid rgba(15, 76, 92, 0.25);
+  box-shadow: none;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.input {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 76, 92, 0.2);
+  padding: 10px 12px;
+  min-width: 110px;
+  font-size: 0.95rem;
+}
+
+.grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(15, 76, 92, 0.1);
+  color: var(--teal);
+  margin-right: 6px;
+  margin-bottom: 6px;
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+}
+
+.list-item {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(15, 76, 92, 0.05);
+  border: 1px solid rgba(15, 76, 92, 0.08);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  background: rgba(239, 91, 91, 0.12);
+  color: var(--coral);
+}
+
+.status {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: var(--stone);
+}
+
+@media (max-width: 720px) {
+  main {
+    padding: 32px 18px 60px;
+  }
+
+  .hero-card {
+    padding: 22px;
+  }
+}

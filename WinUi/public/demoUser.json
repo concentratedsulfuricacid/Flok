@@ -1,0 +1,7 @@
+{
+  "name": "DemoUser",
+  "age": 65,
+  "location": "Pasir Ris East",
+  "interests": ["running", "yoga", "gardening"],
+  "fitnessLevel": 7
+}

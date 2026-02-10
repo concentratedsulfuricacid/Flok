@@ -1,6 +1,14 @@
 import React, { useMemo, useState } from "react";
 import { BrowserRouter, NavLink, Route, Routes, Navigate } from "react-router-dom";
-import { Menu, X, MapPin, CalendarDays, Users, PlusCircle, User } from "lucide-react";
+import {
+  Menu,
+  X,
+  MapPin,
+  CalendarDays,
+  Users,
+  PlusCircle,
+  User,
+} from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Map", to: "/map", Icon: MapPin },
@@ -13,68 +21,75 @@ const NAV_ITEMS = [
 function Shell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
 
-  const linkBase =
-    "inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition";
-  const linkActive = "bg-white/10 text-white";
-  const linkInactive = "text-white/70 hover:bg-white/10 hover:text-white";
-
   const Brand = useMemo(
     () => (
-      <div className="flex items-center gap-2">
-        <div className="grid h-9 w-9 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/10">
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-rose-400 to-pink-400 shadow-sm ring-1 ring-rose-200">
           <span className="text-base font-extrabold tracking-tight text-white">F</span>
         </div>
         <div className="leading-tight">
-          <div className="text-white text-base font-extrabold tracking-tight">Flok</div>
-          <div className="text-white/60 text-xs">Find your people</div>
+          <div className="text-[15px] font-extrabold tracking-tight text-neutral-900">
+            Flok
+          </div>
+          <div className="text-xs text-neutral-500">Find your communities</div>
         </div>
       </div>
     ),
     []
   );
 
+  const tabBase =
+    "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition";
+  const tabActive =
+    "bg-rose-50 text-rose-700 ring-1 ring-rose-200 shadow-sm";
+  const tabInactive =
+    "text-neutral-600 hover:bg-rose-50 hover:text-rose-700";
+
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
-      {/* Top header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          {Brand}
+    <div className="min-h-screen bg-rose-50 text-neutral-900">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-rose-200 bg-white/80 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="flex items-center justify-between py-3">
+            {/* Left: Brand */}
+            {Brand}
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-2">
-            {NAV_ITEMS.map(({ label, to, Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  [
-                    linkBase,
-                    isActive ? linkActive : linkInactive,
-                    "ring-1 ring-white/10",
-                  ].join(" ")
-                }
-                end
+            {/* Center: Tabs (desktop) */}
+            <nav className="hidden md:flex items-center gap-1">
+              {NAV_ITEMS.map(({ label, to, Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    [tabBase, isActive ? tabActive : tabInactive].join(" ")
+                  }
+                  end
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+
+            {/* Right: Header action + mobile menu */}
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline-flex items-center rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">
+                Prototype
+              </span>
+
+              <button
+                className="md:hidden inline-flex items-center justify-center rounded-xl p-2 ring-1 ring-rose-200 hover:bg-rose-50"
+                onClick={() => setOpen((v) => !v)}
+                aria-label={open ? "Close menu" : "Open menu"}
               >
-                <Icon className="h-4 w-4" />
-                {label}
-              </NavLink>
-            ))}
-          </nav>
+                {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
 
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden inline-flex items-center justify-center rounded-xl p-2 ring-1 ring-white/10 hover:bg-white/10"
-            onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "Close menu" : "Open menu"}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-
-        {/* Mobile nav */}
-        {open && (
-          <div className="md:hidden border-t border-white/10">
-            <div className="mx-auto max-w-6xl px-4 py-3">
+          {/* Tabs (mobile) */}
+          {open && (
+            <div className="md:hidden pb-4">
               <div className="grid gap-2">
                 {NAV_ITEMS.map(({ label, to, Icon }) => (
                   <NavLink
@@ -83,8 +98,10 @@ function Shell({ children }: { children: React.ReactNode }) {
                     onClick={() => setOpen(false)}
                     className={({ isActive }) =>
                       [
-                        "flex items-center gap-3 rounded-2xl px-3 py-3 ring-1 ring-white/10 transition",
-                        isActive ? "bg-white/10" : "hover:bg-white/10",
+                        "flex items-center gap-3 rounded-2xl px-3 py-3 ring-1 transition",
+                        isActive
+                          ? "bg-rose-50 text-rose-700 ring-rose-200"
+                          : "bg-white text-neutral-700 ring-rose-100 hover:bg-rose-50 hover:ring-rose-200",
                       ].join(" ")
                     }
                     end
@@ -95,20 +112,17 @@ function Shell({ children }: { children: React.ReactNode }) {
                 ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
       {/* Main */}
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        {/* Optional hero (shows on the first route you land on) */}
-        {children}
-      </main>
+      <main className="mx-auto max-w-6xl px-4 py-10">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-white/10">
-        <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-white/60">
-          © {new Date().getFullYear()} Flok — Prototype UI
+      <footer className="border-t border-rose-200 bg-white/60">
+        <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-500">
+          © {new Date().getFullYear()} Flok — UI scaffold
         </div>
       </footer>
     </div>
@@ -119,14 +133,16 @@ function EmptyPage({ title }: { title: string }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        <p className="mt-2 text-white/60">
-          This page is intentionally empty for now. Add your content here.
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
+          {title}
+        </h1>
+        <p className="mt-2 text-neutral-600">
+          This page is intentionally empty for now. We’ll add components here later.
         </p>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
-        <div className="text-white/60">{title} content goes here…</div>
+      <div className="rounded-3xl border border-rose-200 bg-white p-10 shadow-sm">
+        <div className="text-neutral-500">{title} content goes here…</div>
       </div>
     </div>
   );
@@ -137,7 +153,7 @@ export default function App() {
     <BrowserRouter>
       <Shell>
         <Routes>
-          {/* Landing: send to Map by default */}
+          {/* Default route */}
           <Route path="/" element={<Navigate to="/map" replace />} />
 
           {/* Tabs */}

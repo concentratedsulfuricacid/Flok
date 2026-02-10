@@ -1,0 +1,125 @@
+---
+- name: Scaffold Community Market Maker repo
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    root: "Flok"
+
+    dirs:
+      - "apps/web/src/app"
+      - "apps/web/src/components"
+      - "apps/web/src/lib"
+      - "apps/web/src/styles"
+      - "apps/web/public"
+
+      - "apps/api/app/api"
+      - "apps/api/app/core"
+      - "apps/api/app/domain"
+      - "apps/api/app/optimizer"
+      - "apps/api/app/services"
+      - "apps/api/app/metrics"
+      - "apps/api/tests"
+
+      - "packages/shared/ts-client"
+      - "packages/ui"
+
+      - "data/seed"
+      - "data/outputs"
+      - "scripts"
+
+    files:
+      # root
+      - ".env.example"
+      - "docker-compose.yml"
+      - "Makefile"
+
+      # web
+      - "apps/web/package.json"
+      - "apps/web/next.config.js"
+
+      # api
+      - "apps/api/pyproject.toml"
+      - "apps/api/Dockerfile"
+
+      # api app entrypoints
+      - "apps/api/app/main.py"
+      - "apps/api/app/core/config.py"
+      - "apps/api/app/core/logging.py"
+
+      # api routes
+      - "apps/api/app/api/routes_seed.py"
+      - "apps/api/app/api/routes_solve.py"
+      - "apps/api/app/api/routes_feedback.py"
+      - "apps/api/app/api/routes_rebalance.py"
+      - "apps/api/app/api/routes_metrics.py"
+
+      # domain + optimizer modules
+      - "apps/api/app/domain/models.py"
+      - "apps/api/app/domain/features.py"
+      - "apps/api/app/optimizer/solver.py"
+      - "apps/api/app/optimizer/pricing.py"
+      - "apps/api/app/optimizer/fairness.py"
+      - "apps/api/app/services/state_store.py"
+      - "apps/api/app/services/simulation.py"
+      - "apps/api/app/metrics/compute.py"
+
+      # python package markers (so imports work nicely)
+      - "apps/api/app/__init__.py"
+      - "apps/api/app/api/__init__.py"
+      - "apps/api/app/core/__init__.py"
+      - "apps/api/app/domain/__init__.py"
+      - "apps/api/app/optimizer/__init__.py"
+      - "apps/api/app/services/__init__.py"
+      - "apps/api/app/metrics/__init__.py"
+
+      # shared
+      - "packages/shared/openapi.json"
+
+      # demo data placeholders
+      - "data/seed/demo_small.json"
+
+      # scripts
+      - "scripts/dev.sh"
+      - "scripts/seed_demo.sh"
+      - "scripts/export_results.sh"
+
+  tasks:
+    - name: Create repo root
+      ansible.builtin.file:
+        path: "{{ root }}"
+        state: directory
+
+    - name: Create directories
+      ansible.builtin.file:
+        path: "{{ root }}/{{ item }}"
+        state: directory
+      loop: "{{ dirs }}"
+
+    - name: Create placeholder files (do not overwrite)
+      ansible.builtin.copy:
+        dest: "{{ root }}/{{ item }}"
+        content: ""
+        force: false
+      loop: "{{ files }}"
+
+    - name: Create README.md (do not overwrite)
+      ansible.builtin.copy:
+        dest: "{{ root }}/README.md"
+        force: false
+        content: |
+          # Community Market Maker
+
+          Monorepo scaffold:
+          - apps/web: Next.js UI (User view + Ops/Judge dashboard)
+          - apps/api: FastAPI + optimizer (matching, pricing, fairness, metrics)
+          - data/seed: demo fixtures
+          - scripts: helper scripts
+
+          ## Quick start (placeholder)
+          - Start API + Web
+          - Seed demo data
+          - Solve + rebalance + view metrics
+
+          (Fill this in with actual commands once implemented.)

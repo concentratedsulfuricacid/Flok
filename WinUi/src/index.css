@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+:root {
+  --font-sans: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+  --font-display: "Fraunces", "Times New Roman", serif;
+
+  --color-canvas: #eef4f1;
+  --color-surface: #ffffff;
+  --color-ink: #16262b;
+  --color-muted: #5f6f73;
+  --color-accent: #2f8f83;
+  --color-mist: #e5efe8;
+  --color-chip: #dff2ec;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background:
+    radial-gradient(900px 600px at 8% -10%, rgba(196, 242, 233, 0.9) 0%, transparent 60%),
+    radial-gradient(900px 600px at 95% 5%, rgba(248, 213, 150, 0.75) 0%, transparent 55%),
+    var(--color-canvas);
+  background-attachment: fixed;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

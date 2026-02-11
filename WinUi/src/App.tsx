@@ -22,14 +22,14 @@ function Shell({ children }: { children: React.ReactNode }) {
   const Brand = useMemo(
     () => (
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-rose-400 to-pink-400 shadow-sm ring-1 ring-rose-200">
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-400 to-amber-300 shadow-sm ring-1 ring-white/70">
           <span className="text-base font-extrabold tracking-tight text-white">F</span>
         </div>
         <div className="leading-tight">
-          <div className="text-[15px] font-extrabold tracking-tight text-neutral-900">
+          <div className="text-[15px] font-extrabold tracking-tight text-[var(--color-ink)] [font-family:var(--font-display)]">
             Flok
           </div>
-          <div className="text-xs text-neutral-500">Find your communities</div>
+          <div className="text-xs text-[var(--color-muted)]">Find your communities</div>
         </div>
       </div>
     ),
@@ -39,14 +39,14 @@ function Shell({ children }: { children: React.ReactNode }) {
   const tabBase =
     "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition";
   const tabActive =
-    "bg-rose-50 text-rose-700 ring-1 ring-rose-200 shadow-sm";
+    "bg-white text-[var(--color-ink)] ring-1 ring-white/70 shadow-sm";
   const tabInactive =
-    "text-neutral-600 hover:bg-rose-50 hover:text-rose-700";
+    "text-[var(--color-muted)] hover:bg-white/70 hover:text-[var(--color-ink)]";
 
   return (
-    <div className="min-h-screen bg-rose-50 text-neutral-900">
+    <div className="min-h-screen bg-transparent text-[var(--color-ink)]">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-rose-200 bg-white/80 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-white/70 bg-white/70 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex items-center justify-between py-3">
             {/* Left: Brand */}
@@ -71,12 +71,12 @@ function Shell({ children }: { children: React.ReactNode }) {
 
             {/* Right: Header action + mobile menu */}
             <div className="flex items-center gap-2">
-              <span className="hidden sm:inline-flex items-center rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">
+              <span className="hidden sm:inline-flex items-center rounded-full bg-[var(--color-chip)] px-3 py-1 text-xs font-semibold text-[var(--color-accent)]">
                 Prototype
               </span>
 
               <button
-                className="md:hidden inline-flex items-center justify-center rounded-xl p-2 ring-1 ring-rose-200 hover:bg-rose-50"
+                className="md:hidden inline-flex items-center justify-center rounded-xl p-2 ring-1 ring-white/70 hover:bg-white/70"
                 onClick={() => setOpen((v) => !v)}
                 aria-label={open ? "Close menu" : "Open menu"}
               >
@@ -98,8 +98,8 @@ function Shell({ children }: { children: React.ReactNode }) {
                       [
                         "flex items-center gap-3 rounded-2xl px-3 py-3 ring-1 transition",
                         isActive
-                          ? "bg-rose-50 text-rose-700 ring-rose-200"
-                          : "bg-white text-neutral-700 ring-rose-100 hover:bg-rose-50 hover:ring-rose-200",
+                          ? "bg-white text-[var(--color-ink)] ring-white/70"
+                          : "bg-white/70 text-[var(--color-muted)] ring-white/60 hover:bg-white hover:text-[var(--color-ink)]",
                       ].join(" ")
                     }
                     end
@@ -118,8 +118,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto max-w-6xl px-4 py-10">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t border-rose-200 bg-white/60">
-        <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-500">
+      <footer className="border-t border-white/70 bg-white/60">
+        <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-[var(--color-muted)]">
           © {new Date().getFullYear()} Flok — UI scaffold
         </div>
       </footer>
@@ -131,16 +131,16 @@ function EmptyPage({ title }: { title: string }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink)]">
           {title}
         </h1>
-        <p className="mt-2 text-neutral-600">
+        <p className="mt-2 text-[var(--color-muted)]">
           This page is intentionally empty for now. We’ll add components here later.
         </p>
       </div>
 
-      <div className="rounded-3xl border border-rose-200 bg-white p-10 shadow-sm">
-        <div className="text-neutral-500">{title} content goes here…</div>
+      <div className="rounded-3xl border border-white/70 bg-white p-10 shadow-sm">
+        <div className="text-[var(--color-muted)]">{title} content goes here…</div>
       </div>
     </div>
   );

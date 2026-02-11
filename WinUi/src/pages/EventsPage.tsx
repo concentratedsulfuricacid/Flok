@@ -8,6 +8,10 @@ import {
   CalendarDays,
   MapPin,
   Users,
+  Play,
+  Pause,
+  RotateCcw,
+  SkipForward,
 } from "lucide-react";
 import { loadDemoUserProfile } from "../demo/demoUserStore";
 import type { DemoUserProfile } from "../demo/demoUserStore";
@@ -47,13 +51,25 @@ type TrendingItem = {
   pulse_delta: number;
 };
 
-type DemoSimulateResponse = {
+type DemoUserRank = {
+  user_id: string;
+  rank: number | null;
+  hot_event_score?: number | null;
+};
+
+type DemoStepMode = "hot" | "random";
+
+type DemoStepResponse = {
   event_id: string;
+  mode: DemoStepMode;
   before_pulse: number;
   after_pulse: number;
-  before_fill: number;
-  after_fill: number;
-  movers?: TrendingItem[];
+  rsvp_count: number;
+  spots_left: number;
+  capacity: number;
+  step: number;
+  added_rsvps: number;
+  user_ranks: DemoUserRank[];
 };
 
 type DemoUserInfo = {
@@ -136,14 +152,18 @@ async function setupDemoScenario(): Promise<DemoSetupResponse> {
   return (await res.json()) as DemoSetupResponse;
 }
 
-async function spikeDemo(level: number, hotEventId: string): Promise<DemoSimulateResponse> {
-  const res = await fetch("/demo/simulate", {
+async function stepDemo(
+  hotEventId: string,
+  mode: DemoStepMode,
+  rsvpsPerStep = 1
+): Promise<DemoStepResponse> {
+  const res = await fetch("/demo/step", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ level, hot_event_id: hotEventId }),
+    body: JSON.stringify({ hot_event_id: hotEventId, mode, rsvps_per_step: rsvpsPerStep }),
   });
-  if (!res.ok) throw new Error(`Failed to spike demo: ${res.status}`);
-  return (await res.json()) as DemoSimulateResponse;
+  if (!res.ok) throw new Error(`Failed to step demo: ${res.status}`);
+  return (await res.json()) as DemoStepResponse;
 }
 
 async function getMetrics(): Promise<MetricsResponse> {
@@ -279,6 +299,11 @@ const formatAreaLabel = (location?: string | null) => {
   return nearest.name;
 };
 
+const getRankForEvent = (items: Event[], eventId: string): number | null => {
+  const idx = items.findIndex((item) => item.id === eventId);
+  return idx >= 0 ? idx + 1 : null;
+};
+
 function EventCard({
   event,
   index,
@@ -287,6 +312,8 @@ function EventCard({
   onUnRsvp,
   isRsvped,
   rsvpBusy,
+  highlightHot = false,
+  hotBadge,
 }: {
   event: Event;
   index: number;
@@ -295,6 +322,8 @@ function EventCard({
   onUnRsvp?: () => void;
   isRsvped?: boolean;
   rsvpBusy?: boolean;
+  highlightHot?: boolean;
+  hotBadge?: string;
 }) {
   const dt = useMemo(() => new Date(event.dateTime), [event.dateTime]);
   const spotsLeft = Math.max(event.capacity - event.participants.length, 0);
@@ -314,7 +343,9 @@ function EventCard({
     <article
       className={
         "group relative overflow-hidden rounded-[28px] border p-4 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.6)] backdrop-blur motion-safe:animate-[fade-up_0.7s_ease-out] " +
-        (isRsvped
+        (highlightHot
+          ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_12%,white)] ring-2 ring-[color-mix(in_srgb,var(--color-accent)_30%,white)]"
+          : isRsvped
           ? "border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,white)] ring-2 ring-[color-mix(in_srgb,var(--color-accent)_35%,white)]"
           : "border-white/70 bg-white/80")
       }
@@ -331,6 +362,11 @@ function EventCard({
       tabIndex={onOpenDetails ? 0 : undefined}
     >
       <div className="absolute -right-6 top-8 h-20 w-20 rounded-full bg-[radial-gradient(circle,rgba(47,143,131,0.35),transparent_70%)] opacity-0 transition duration-500 group-hover:opacity-100" />
+      {hotBadge && (
+        <div className="absolute left-4 top-4 rounded-full bg-[var(--color-accent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white shadow">
+          {hotBadge}
+        </div>
+      )}
       <img
         src={imageSrc}
         alt={event.description}
@@ -442,10 +478,18 @@ function DemoPanel({
   demoError,
   scenario,
   demoPulse,
-  demoLevel,
+  demoRsvpCount,
+  demoSpotsLeft,
+  demoStep,
+  demoPlaying,
+  demoStepMode,
   onSetup,
   onPopulate,
-  onSpike,
+  onModeChange,
+  onStep,
+  onPlay,
+  onPause,
+  onReset,
 }: {
   demoMode: boolean;
   onToggle: () => void;
@@ -453,10 +497,18 @@ function DemoPanel({
   demoError: string | null;
   scenario: DemoSetupResponse | null;
   demoPulse: number | null;
-  demoLevel: number;
+  demoRsvpCount: number;
+  demoSpotsLeft: number | null;
+  demoStep: number;
+  demoPlaying: boolean;
+  demoStepMode: DemoStepMode;
   onSetup: () => void;
   onPopulate: () => void;
-  onSpike: (level: number) => void;
+  onModeChange: (mode: DemoStepMode) => void;
+  onStep: () => void;
+  onPlay: () => void;
+  onPause: () => void;
+  onReset: () => void;
 }) {
   const demoActive = Boolean(scenario);
   return (
@@ -486,25 +538,95 @@ function DemoPanel({
 
       {demoMode && (
         <div className="mt-4 space-y-3">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={onSetup}
-              disabled={demoBusy}
-              className="rounded-full bg-[var(--color-ink)] px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
-            >
-              Setup demo scenario
-            </button>
-            <button
-              onClick={onPopulate}
-              disabled={demoBusy || demoActive}
-              className="rounded-full border border-[var(--color-mist)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-muted)] transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
-            >
-              Populate events
-            </button>
-          </div>
+          {!demoActive ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={onSetup}
+                disabled={demoBusy}
+                className="rounded-full bg-[var(--color-ink)] px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+              >
+                Setup demo scenario
+              </button>
+              <button
+                onClick={onPopulate}
+                disabled={demoBusy}
+                className="rounded-full border border-[var(--color-mist)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-muted)] transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+              >
+                Populate events
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                {(
+                  [
+                    { id: "hot", label: "Hottest event" },
+                    { id: "random", label: "Random events" },
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => onModeChange(item.id)}
+                    disabled={demoBusy}
+                    className={
+                      "rounded-full px-3 py-1 text-[10px] font-semibold transition disabled:opacity-60 " +
+                      (demoStepMode === item.id
+                        ? "bg-[var(--color-accent)] text-white"
+                        : "bg-white text-[var(--color-muted)] ring-1 ring-white/60")
+                    }
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={onStep}
+                  disabled={
+                    demoBusy ||
+                    demoPlaying ||
+                    (demoStepMode === "hot" && demoSpotsLeft !== null && demoSpotsLeft <= 0)
+                  }
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ink)] px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                >
+                  <SkipForward className="h-3.5 w-3.5" />
+                  Step RSVP
+                </button>
+                <button
+                  onClick={demoPlaying ? onPause : onPlay}
+                  disabled={
+                    demoBusy ||
+                    (demoStepMode === "hot" && demoSpotsLeft !== null && demoSpotsLeft <= 0 && !demoPlaying)
+                  }
+                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-mist)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-ink)] transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                >
+                  {demoPlaying ? (
+                    <>
+                      <Pause className="h-3.5 w-3.5" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-3.5 w-3.5" />
+                      Play
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={onReset}
+                  disabled={demoBusy}
+                  className="inline-flex items-center gap-1 rounded-full border border-[var(--color-mist)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-muted)] transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset
+                </button>
+              </div>
+            </>
+          )}
           {demoActive && (
             <div className="text-[10px] text-[var(--color-muted)]">
-              Demo scenario active. Toggle off Demo Lab to exit.
+              Demo scenario active. Mode: {demoStepMode === "hot" ? "Hottest event" : "Random events"}.
+              {" "}Step {demoStep}. Toggle off Demo Lab to exit.
             </div>
           )}
           {demoError && <div className="text-xs font-semibold text-[var(--color-danger)]">{demoError}</div>}
@@ -514,26 +636,26 @@ function DemoPanel({
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-[var(--color-ink)]">{scenario.hot_event_title}</div>
                 <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-[var(--color-accent)]">
-                  Level {demoLevel}
+                  Step {demoStep}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Pulse</span>
-                <span className="font-semibold text-[var(--color-ink)]">
-                  {demoPulse ? demoPulse.toFixed(1) : "—"}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3].map((level) => (
-                  <button
-                    key={level}
-                    onClick={() => onSpike(level)}
-                    disabled={demoBusy}
-                    className="rounded-full bg-white px-3 py-1 text-[10px] font-semibold text-[var(--color-ink)] ring-1 ring-white/60 transition hover:-translate-y-0.5 hover:shadow disabled:opacity-60"
-                  >
-                    Spike level {level}
-                  </button>
-                ))}
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl bg-white/90 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Pulse</div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
+                    {demoPulse !== null ? demoPulse.toFixed(1) : "—"}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-white/90 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">RSVPs</div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--color-ink)]">{demoRsvpCount}</div>
+                </div>
+                <div className="rounded-xl bg-white/90 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Spots left</div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
+                    {demoSpotsLeft ?? "—"}
+                  </div>
+                </div>
               </div>
               <div className="space-y-2 pt-2">
                 {scenario.users.map((user) => (
@@ -611,7 +733,13 @@ export default function EventsPage() {
   const [demoScenario, setDemoScenario] = useState<DemoSetupResponse | null>(null);
   const [demoFeeds, setDemoFeeds] = useState<Record<string, Event[]>>({});
   const [demoPulse, setDemoPulse] = useState<number | null>(null);
-  const [demoLevel, setDemoLevel] = useState<number>(0);
+  const [demoStepCount, setDemoStepCount] = useState<number>(0);
+  const [demoRsvpCount, setDemoRsvpCount] = useState<number>(0);
+  const [demoSpotsLeft, setDemoSpotsLeft] = useState<number | null>(null);
+  const [demoRanks, setDemoRanks] = useState<Record<string, number | null>>({});
+  const [demoRankTrend, setDemoRankTrend] = useState<Record<string, number[]>>({});
+  const [demoPlaying, setDemoPlaying] = useState(false);
+  const [demoStepMode, setDemoStepMode] = useState<DemoStepMode>("hot");
   const [activeTab, setActiveTab] = useState<FeedTab>("all");
   const [rsvpBusyByEvent, setRsvpBusyByEvent] = useState<Record<string, boolean>>({});
   const [popup, setPopup] = useState<{ message: string; tone: PopupTone } | null>(null);
@@ -740,17 +868,77 @@ export default function EventsPage() {
       next[res.userId] = res.items;
     });
     setDemoFeeds(next);
+    return next;
+  };
+
+  const syncRanksFromFeed = (
+    users: DemoUserInfo[],
+    feeds: Record<string, Event[]>,
+    hotEventId: string,
+    resetTrend = false,
+    appendTrend = true
+  ) => {
+    const nextRanks: Record<string, number | null> = {};
+    users.forEach((user) => {
+      nextRanks[user.user_id] = getRankForEvent(feeds[user.user_id] ?? [], hotEventId);
+    });
+    setDemoRanks(nextRanks);
+    if (!appendTrend) return;
+    setDemoRankTrend((prev) => {
+      const next: Record<string, number[]> = resetTrend ? {} : { ...prev };
+      users.forEach((user) => {
+        const rank = nextRanks[user.user_id];
+        if (typeof rank !== "number") return;
+        const current = resetTrend ? [] : (next[user.user_id] ?? []);
+        next[user.user_id] = [...current, rank].slice(-8);
+      });
+      return next;
+    });
+  };
+
+  const syncHotStatsFromFeed = (feeds: Record<string, Event[]>, hotEventId: string) => {
+    const all = Object.values(feeds).flat();
+    const hot = all.find((event) => event.id === hotEventId);
+    if (!hot) return;
+    setDemoPulse(typeof hot.pulse === "number" ? hot.pulse : null);
+    setDemoRsvpCount(hot.participants.length);
+    setDemoSpotsLeft(Math.max(hot.capacity - hot.participants.length, 0));
+  };
+
+  const applyStepRanks = (ranks: DemoUserRank[]) => {
+    const rankMap: Record<string, number | null> = {};
+    ranks.forEach((entry) => {
+      rankMap[entry.user_id] = entry.rank;
+    });
+    setDemoRanks((prev) => ({ ...prev, ...rankMap }));
+    setDemoRankTrend((prev) => {
+      const next = { ...prev };
+      ranks.forEach((entry) => {
+        if (typeof entry.rank !== "number") return;
+        const current = next[entry.user_id] ?? [];
+        next[entry.user_id] = [...current, entry.rank].slice(-8);
+      });
+      return next;
+    });
   };
 
   const setupDemo = async () => {
     setDemoBusy(true);
     setDemoError(null);
+    setDemoPlaying(false);
+    setDemoStepMode("hot");
+    setDemoPulse(null);
+    setDemoRsvpCount(0);
+    setDemoSpotsLeft(null);
+    setDemoRanks({});
+    setDemoRankTrend({});
     try {
       const scenario = await setupDemoScenario();
       setDemoScenario(scenario);
-      setDemoLevel(0);
-      setDemoPulse(50);
-      await loadDemoFeeds(scenario.users);
+      setDemoStepCount(0);
+      const feeds = await loadDemoFeeds(scenario.users);
+      syncHotStatsFromFeed(feeds, scenario.hot_event_id);
+      syncRanksFromFeed(scenario.users, feeds, scenario.hot_event_id, true);
     } catch (e) {
       setDemoError(e instanceof Error ? e.message : "Failed to setup demo.");
     } finally {
@@ -761,6 +949,8 @@ export default function EventsPage() {
   const populateEvents = async () => {
     setDemoBusy(true);
     setDemoError(null);
+    setDemoPlaying(false);
+    setDemoStepMode("hot");
     try {
       const res = await fetch("/seed", {
         method: "POST",
@@ -768,12 +958,18 @@ export default function EventsPage() {
         body: JSON.stringify({ mode: "synthetic", num_users: 20, num_opps: 50 }),
       });
       if (!res.ok) throw new Error(`Seed failed: ${res.status}`);
+
       localStorage.removeItem("flok.apiUserId");
       setUserId(null);
       setDemoScenario(null);
       setDemoFeeds({});
-      setDemoLevel(0);
+      setDemoStepCount(0);
       setDemoPulse(null);
+      setDemoRsvpCount(0);
+      setDemoSpotsLeft(null);
+      setDemoRanks({});
+      setDemoRankTrend({});
+
       const uid = await ensureUserId(true);
       if (uid) {
         await load();
@@ -785,24 +981,35 @@ export default function EventsPage() {
     }
   };
 
-  const spikeLevel = async (level: number) => {
+  const stepDemoOnce = async () => {
     if (!demoScenario) return;
     setDemoBusy(true);
     setDemoError(null);
     try {
-      const res = await spikeDemo(level, demoScenario.hot_event_id);
-      setDemoPulse(res.after_pulse);
-      setDemoLevel(level);
-      if (res.movers && res.movers.length > 0) {
-        setMovers(res.movers);
+      const res = await stepDemo(demoScenario.hot_event_id, demoStepMode);
+      setDemoStepCount(res.step);
+      applyStepRanks(res.user_ranks);
+      const feeds = await loadDemoFeeds(demoScenario.users);
+      syncHotStatsFromFeed(feeds, demoScenario.hot_event_id);
+      syncRanksFromFeed(demoScenario.users, feeds, demoScenario.hot_event_id, false, false);
+      if (res.added_rsvps <= 0 || (demoStepMode === "hot" && res.spots_left <= 0)) {
+        setDemoPlaying(false);
       }
-      await loadDemoFeeds(demoScenario.users);
     } catch (e) {
-      setDemoError(e instanceof Error ? e.message : "Demo spike failed.");
+      setDemoPlaying(false);
+      setDemoError(e instanceof Error ? e.message : "Demo step failed.");
     } finally {
       setDemoBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (!demoPlaying || !demoScenario) return;
+    const timer = window.setTimeout(() => {
+      void stepDemoOnce();
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [demoPlaying, demoScenario, demoStepCount, stepDemoOnce]);
 
   const performRsvp = async (eventId: string) => {
     setRsvpBusyByEvent((prev) => ({ ...prev, [eventId]: true }));
@@ -817,7 +1024,9 @@ export default function EventsPage() {
       }
       await load();
       if (demoScenario) {
-        await loadDemoFeeds(demoScenario.users);
+        const feeds = await loadDemoFeeds(demoScenario.users);
+        syncHotStatsFromFeed(feeds, demoScenario.hot_event_id);
+        syncRanksFromFeed(demoScenario.users, feeds, demoScenario.hot_event_id);
       }
     } catch (e) {
       setPopup({ message: e instanceof Error ? e.message : "Failed to RSVP.", tone: "error" });
@@ -835,7 +1044,9 @@ export default function EventsPage() {
       setPopup({ message: "Your RSVP has been removed.", tone: "success" });
       await load();
       if (demoScenario) {
-        await loadDemoFeeds(demoScenario.users);
+        const feeds = await loadDemoFeeds(demoScenario.users);
+        syncHotStatsFromFeed(feeds, demoScenario.hot_event_id);
+        syncRanksFromFeed(demoScenario.users, feeds, demoScenario.hot_event_id);
       }
     } catch (e) {
       setPopup({ message: e instanceof Error ? e.message : "Failed to un-RSVP.", tone: "error" });
@@ -1009,26 +1220,38 @@ export default function EventsPage() {
               <div>
                 <div className="text-sm font-semibold text-[var(--color-ink)]">Demo feeds</div>
                 <p className="text-xs text-[var(--color-muted)]">
-                  Ranked after spike level {demoLevel}.
+                  Step through RSVP pressure and watch the hot event rank update live.
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 {demoScenario.users.map((user) => {
                   const items = demoFeeds[user.user_id] ?? [];
+                  const visibleItems = items.slice(0, 4);
+                  const rank = demoRanks[user.user_id];
+                  const trend = demoRankTrend[user.user_id] ?? [];
                   return (
                     <div
                       key={user.user_id}
                       className="rounded-[24px] border border-white/70 bg-white/80 p-4 shadow"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold text-[var(--color-ink)]">
-                          {user.label}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-[var(--color-ink)]">{user.label}</div>
+                          <div className="mt-1 text-[10px] text-[var(--color-muted)]">{user.name}</div>
                         </div>
-                        <div className="text-xs text-[var(--color-muted)]">{user.name}</div>
+                        <div className="rounded-2xl bg-[var(--color-mist)] px-3 py-2 text-right">
+                          <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Hot rank</div>
+                          <div className="text-2xl font-semibold leading-none text-[var(--color-ink)]">
+                            {typeof rank === "number" ? `#${rank}` : "—"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-[11px] text-[var(--color-muted)]">
+                        {trend.length > 0 ? trend.map((value) => `#${value}`).join(" -> ") : "No rank trend yet."}
                       </div>
                       {items.length > 0 ? (
                         <div className="mt-3 space-y-3">
-                          {items.slice(0, 4).map((event, idx) => (
+                          {visibleItems.map((event, idx) => (
                             <EventCard
                               key={`${user.user_id}-${event.id}`}
                               event={event}
@@ -1038,6 +1261,8 @@ export default function EventsPage() {
                               onRsvp={() => void handleRsvp(event.id)}
                               onUnRsvp={() => void handleUnRsvp(event.id)}
                               rsvpBusy={Boolean(rsvpBusyByEvent[event.id])}
+                              highlightHot={event.id === demoScenario.hot_event_id}
+                              hotBadge={event.id === demoScenario.hot_event_id ? "Hot event" : undefined}
                             />
                           ))}
                         </div>
@@ -1122,10 +1347,16 @@ export default function EventsPage() {
               setDemoMode((prev) => {
                 const next = !prev;
                 if (!next) {
+                  setDemoPlaying(false);
+                  setDemoStepMode("hot");
                   setDemoScenario(null);
                   setDemoFeeds({});
-                  setDemoLevel(0);
+                  setDemoStepCount(0);
                   setDemoPulse(null);
+                  setDemoRsvpCount(0);
+                  setDemoSpotsLeft(null);
+                  setDemoRanks({});
+                  setDemoRankTrend({});
                   setDemoError(null);
                 }
                 return next;
@@ -1135,10 +1366,18 @@ export default function EventsPage() {
             demoError={demoError}
             scenario={demoScenario}
             demoPulse={demoPulse}
-            demoLevel={demoLevel}
+            demoRsvpCount={demoRsvpCount}
+            demoSpotsLeft={demoSpotsLeft}
+            demoStep={demoStepCount}
+            demoPlaying={demoPlaying}
+            demoStepMode={demoStepMode}
             onSetup={setupDemo}
-            onPopulate={populateEvents}
-            onSpike={spikeLevel}
+            onPopulate={() => void populateEvents()}
+            onModeChange={setDemoStepMode}
+            onStep={() => void stepDemoOnce()}
+            onPlay={() => setDemoPlaying(true)}
+            onPause={() => setDemoPlaying(false)}
+            onReset={() => void setupDemo()}
           />
         </div>
       </div>

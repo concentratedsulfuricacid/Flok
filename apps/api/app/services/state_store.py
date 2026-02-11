@@ -37,6 +37,11 @@ class StateStore:
             self.pulse_history: Dict[str, List[Tuple[str, float]]] = {}
             self.demo_score_overrides: Dict[Tuple[str, str], float] = {}
             self.demo_pricing_overrides: Dict[str, float] | None = None
+            self.demo_hot_event_id: str | None = None
+            self.demo_user_ids: List[str] = []
+            self.demo_step_queue: Dict[str, List[str]] = {}
+            self.demo_step_counts: Dict[str, int] = {}
+            self.demo_actor_seq: int = 0
 
     def _ensure_opp_state(self, opp_id: str) -> None:
         """Initialize per-opportunity pricing and counters if missing."""
@@ -79,6 +84,11 @@ class StateStore:
             self.pulse_history = {}
             self.demo_score_overrides = {}
             self.demo_pricing_overrides = None
+            self.demo_hot_event_id = None
+            self.demo_user_ids = []
+            self.demo_step_queue = {}
+            self.demo_step_counts = {}
+            self.demo_actor_seq = 0
             for opp_id in self.opps:
                 self._ensure_opp_state(opp_id)
 
@@ -99,6 +109,11 @@ class StateStore:
             self.pulse_history = {}
             self.demo_score_overrides = {}
             self.demo_pricing_overrides = None
+            self.demo_hot_event_id = None
+            self.demo_user_ids = []
+            self.demo_step_queue = {}
+            self.demo_step_counts = {}
+            self.demo_actor_seq = 0
             for opp_id in self.opps:
                 self._ensure_opp_state(opp_id)
 

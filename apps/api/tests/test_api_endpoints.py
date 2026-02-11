@@ -187,6 +187,46 @@ def test_demo_user_json_endpoint():
     assert isinstance(body["interests"], list)
 
 
+def test_demo_step_endpoint():
+    reset_store()
+
+    setup_resp = client.post("/demo/setup")
+    assert setup_resp.status_code == 200
+    setup_body = setup_resp.json()
+    hot_event_id = setup_body["hot_event_id"]
+
+    step_resp = client.post("/demo/step", json={"hot_event_id": hot_event_id, "rsvps_per_step": 1})
+    assert step_resp.status_code == 200
+    step_body = step_resp.json()
+    assert step_body["event_id"] == hot_event_id
+    assert step_body["step"] == 1
+    assert step_body["rsvp_count"] == 1
+    assert step_body["spots_left"] == step_body["capacity"] - 1
+    assert isinstance(step_body["user_ranks"], list)
+    assert any(item["user_id"] == "demo_mid" for item in step_body["user_ranks"])
+
+
+def test_demo_step_random_mode_endpoint():
+    reset_store()
+
+    setup_resp = client.post("/demo/setup")
+    assert setup_resp.status_code == 200
+    hot_event_id = setup_resp.json()["hot_event_id"]
+
+    step_resp = client.post(
+        "/demo/step",
+        json={"hot_event_id": hot_event_id, "mode": "random", "rsvps_per_step": 1},
+    )
+    assert step_resp.status_code == 200
+    step_body = step_resp.json()
+    assert step_body["mode"] == "random"
+    assert step_body["step"] == 1
+    assert step_body["added_rsvps"] >= 0
+    assert isinstance(step_body["user_ranks"], list)
+    # Rankings should still include the tracked hot-event users in random mode.
+    assert any(item["user_id"] == "demo_high" for item in step_body["user_ranks"])
+
+
 def test_frontend_api_rsvp_flow():
     reset_store()
 

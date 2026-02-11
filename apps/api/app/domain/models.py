@@ -336,6 +336,37 @@ class DemoSimulateResponse(BaseModel):
     movers: List[TrendingItem] = Field(default_factory=list)
 
 
+class DemoStepRequest(BaseModel):
+    """Request payload for one-step demo RSVP simulation."""
+
+    hot_event_id: Optional[str] = None
+    mode: Literal["hot", "random"] = "hot"
+    rsvps_per_step: int = Field(default=1, ge=1, le=3)
+
+
+class DemoUserRank(BaseModel):
+    """Hot-event rank snapshot for a demo user."""
+
+    user_id: str
+    rank: Optional[int] = None
+    hot_event_score: Optional[float] = None
+
+
+class DemoStepResponse(BaseModel):
+    """Response payload for one-step demo RSVP simulation."""
+
+    event_id: str
+    mode: Literal["hot", "random"] = "hot"
+    before_pulse: float
+    after_pulse: float
+    rsvp_count: int
+    spots_left: int
+    capacity: int
+    step: int
+    added_rsvps: int
+    user_ranks: List[DemoUserRank] = Field(default_factory=list)
+
+
 class DemoUserInfo(BaseModel):
     """Lightweight demo user metadata for UI panels."""
 

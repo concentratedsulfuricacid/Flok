@@ -177,3 +177,60 @@ def test_rebalance_summary():
     body = resp.json()
     assert "summary" in body
     assert "assigned_count" in body["summary"]
+
+
+def test_demo_user_json_endpoint():
+    resp = client.get("/demoUser.json")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["name"]
+    assert isinstance(body["interests"], list)
+
+
+def test_frontend_api_rsvp_flow():
+    reset_store()
+
+    user_resp = client.post(
+        "/api/users",
+        json={
+            "interests": ["music"],
+            "location": "0.0,0.0",
+            "availability": ["weeknights"],
+        },
+    )
+    assert user_resp.status_code == 200
+    user_id = user_resp.json()["user_id"]
+
+    event_resp = client.post(
+        "/api/events",
+        json={
+            "description": "Open mic night",
+            "creator": "Flok",
+            "dateTime": "2026-02-11T19:00:00Z",
+            "participants": [],
+            "capacity": 1,
+            "isFull": False,
+            "location": "0.0,0.0",
+            "tags": ["music"],
+        },
+    )
+    assert event_resp.status_code == 200
+    event_id = event_resp.json()["id"]
+
+    list_resp = client.get("/api/events")
+    assert list_resp.status_code == 200
+    events = list_resp.json()
+    assert any(item["id"] == event_id for item in events)
+
+    rsvp_resp = client.post(f"/api/events/{event_id}/rsvp", json={"user_id": user_id})
+    assert rsvp_resp.status_code == 200
+    assert rsvp_resp.json()["status"] == "CONFIRMED"
+
+    unrsvp_resp = client.request("DELETE", f"/api/events/{event_id}/rsvp", json={"user_id": user_id})
+    assert unrsvp_resp.status_code == 200
+    assert unrsvp_resp.json()["status"] == "CANCELLED"
+
+    list_after = client.get("/api/events")
+    assert list_after.status_code == 200
+    event_after = next(item for item in list_after.json() if item["id"] == event_id)
+    assert user_id not in event_after["participants"]

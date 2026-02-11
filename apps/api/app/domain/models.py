@@ -44,6 +44,7 @@ class Opportunity(BaseModel):
     group_size: GroupSize
     intensity: Intensity
     beginner_friendly: bool = True
+    image_url: Optional[str] = None
 
 
 class Interaction(BaseModel):

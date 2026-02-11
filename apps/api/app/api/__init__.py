@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api import (
+    routes_demo,
     routes_events,
     routes_feedback,
     routes_feed,
@@ -16,6 +17,7 @@ from app.api import (
 )
 
 router = APIRouter()
+router.include_router(routes_demo.router)
 router.include_router(routes_seed.router)
 router.include_router(routes_solve.router)
 router.include_router(routes_feed.router)

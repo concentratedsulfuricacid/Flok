@@ -37,13 +37,18 @@ def _pick_tags(rng: random.Random, k_min: int = 2, k_max: int = 4) -> List[str]:
 def _clustered_point(rng: random.Random, centers: List[Tuple[float, float]]) -> Tuple[float, float]:
     """Sample a point near a random cluster center."""
     cx, cy = rng.choice(centers)
-    return cx + rng.uniform(-0.5, 0.5), cy + rng.uniform(-0.5, 0.5)
+    return cx + rng.uniform(-0.03, 0.03), cy + rng.uniform(-0.03, 0.03)
 
 
 def generate_synthetic(num_users: int, num_opps: int, seed: int | None = None) -> Tuple[List[User], List[Opportunity]]:
     """Generate a synthetic population of users and opportunities."""
     rng = random.Random(seed)
-    centers = [(-2.0, -1.5), (0.0, 1.0), (2.5, -0.5)]
+    centers = [
+        (1.283, 103.851),  # CBD/Marina
+        (1.333, 103.742),  # Jurong East
+        (1.349, 103.944),  # Tampines
+        (1.436, 103.786),  # Woodlands
+    ]
 
     users: List[User] = []
     for i in range(num_users):

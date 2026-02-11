@@ -189,6 +189,8 @@ class UserUpsertResponse(BaseModel):
     """Response payload for /users."""
 
     user_id: str
+
+
 class FeedItem(BaseModel):
     """A ranked event in the personalized feed."""
 
@@ -214,6 +216,8 @@ class FeedResponse(BaseModel):
 
     user_id: str
     items: List[FeedItem]
+
+
 class EventCreateRequest(BaseModel):
     """Create a new event/opportunity."""
 
@@ -281,7 +285,7 @@ class RSVPResponse(BaseModel):
     """Response payload for RSVP."""
 
     event_id: str
-    status: Literal["ACCEPTED", "FULL"]
+    status: Literal["CONFIRMED", "FULL", "WAITLISTED"]
     spots_left: int
 
 
@@ -308,6 +312,28 @@ class TrendingResponse(BaseModel):
     """Response payload for /trending."""
 
     items: List[TrendingItem]
+
+
+class DemoSimulateRequest(BaseModel):
+    """Request payload for demo simulation."""
+
+    hot_event_id: Optional[str] = None
+    num_users: int = 10
+    accept_rate: float = 0.6
+    click_rate: float = 0.8
+
+
+class DemoSimulateResponse(BaseModel):
+    """Response payload for demo simulation."""
+
+    event_id: str
+    before_pulse: float
+    after_pulse: float
+    before_fill: float
+    after_fill: float
+    movers: List[TrendingItem] = Field(default_factory=list)
+
+
 class RebalanceResponse(SolveResponse):
     """Solve response with price deltas after a rebalance."""
 

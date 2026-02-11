@@ -33,12 +33,9 @@ def feed(user_id: str = Query(...), limit: int = Query(20, ge=1, le=100)) -> Fee
             continue
         expl = explanations.get(f"{user.id}|{opp.id}")
         features, _ = compute_feature_vector(user, opp, store.interactions)
-<<<<<<< HEAD
         pulse = store.prices.get(opp.id, 50.0)
         s_ml = expl.breakdown.get("s_ml", score) if expl else score
 
-=======
->>>>>>> main
         items.append(
             FeedItem(
                 event_id=opp.id,
@@ -52,19 +49,13 @@ def feed(user_id: str = Query(...), limit: int = Query(20, ge=1, le=100)) -> Fee
                 group_size=opp.group_size,
                 intensity=opp.intensity,
                 beginner_friendly=opp.beginner_friendly,
-<<<<<<< HEAD
                 fit_score=float(s_ml),
                 pulse=float(pulse),
-=======
-                fit_score=score,
-                pulse=store.prices.get(opp.id, 50.0),
->>>>>>> main
                 availability_ok=features["availability_ok"] > 0.5,
                 reasons=expl.reason_chips if expl else [],
             )
         )
 
-<<<<<<< HEAD
     items.sort(key=lambda item: scored.get(item.event_id, item.fit_score), reverse=True)
     items = items[:limit]
 
@@ -87,7 +78,3 @@ def feed(user_id: str = Query(...), limit: int = Query(20, ge=1, le=100)) -> Fee
             store.log_impression(user_id, item.event_id, feature_snapshot, item.pulse)
 
     return FeedResponse(user_id=user_id, items=items)
-=======
-    items.sort(key=lambda item: item.fit_score, reverse=True)
-    return FeedResponse(user_id=user_id, items=items[:limit])
->>>>>>> main

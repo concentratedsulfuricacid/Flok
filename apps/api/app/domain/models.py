@@ -4,13 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Dict, List, Literal, Optional, Tuple
-
-<<<<<<< HEAD
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
-=======
-from pydantic import BaseModel, Field
-from pydantic import AliasChoices, ConfigDict
->>>>>>> main
 
 
 GroupSize = Literal["small", "medium", "large"]
@@ -172,8 +166,6 @@ class FeedbackResponse(BaseModel):
     total_interactions: int
 
 
-<<<<<<< HEAD
-=======
 class UserUpsertRequest(BaseModel):
     """Create or update a user profile."""
 
@@ -197,9 +189,6 @@ class UserUpsertResponse(BaseModel):
     """Response payload for /users."""
 
     user_id: str
-
-
->>>>>>> main
 class FeedItem(BaseModel):
     """A ranked event in the personalized feed."""
 
@@ -225,10 +214,6 @@ class FeedResponse(BaseModel):
 
     user_id: str
     items: List[FeedItem]
-
-
-<<<<<<< HEAD
-=======
 class EventCreateRequest(BaseModel):
     """Create a new event/opportunity."""
 
@@ -323,9 +308,6 @@ class TrendingResponse(BaseModel):
     """Response payload for /trending."""
 
     items: List[TrendingItem]
-
-
->>>>>>> main
 class RebalanceResponse(SolveResponse):
     """Solve response with price deltas after a rebalance."""
 

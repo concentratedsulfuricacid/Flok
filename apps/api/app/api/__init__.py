@@ -6,6 +6,7 @@ from app.api import (
     routes_events,
     routes_feedback,
     routes_feed,
+    routes_frontend,
     routes_metrics,
     routes_rebalance,
     routes_seed,
@@ -22,6 +23,6 @@ router.include_router(routes_feedback.router)
 router.include_router(routes_rebalance.router)
 router.include_router(routes_metrics.router)
 router.include_router(routes_users.router)
-router.include_router(routes_feed.router)
 router.include_router(routes_events.router)
 router.include_router(routes_trending.router)
+router.include_router(routes_frontend.router)

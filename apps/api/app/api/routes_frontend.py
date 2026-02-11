@@ -8,6 +8,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.domain.features import compute_feature_vector
 from app.domain.models import Opportunity, User
 from app.optimizer import solver
 from app.services import simulation
@@ -26,10 +27,14 @@ class FrontendEvent(BaseModel):
     isFull: bool
     location: str
     tags: List[str] = Field(default_factory=list)
+    imageUrl: Optional[str] = None
     fitScore: Optional[float] = None
     pulse: Optional[float] = None
     reasons: List[str] = Field(default_factory=list)
-    imageUrl: Optional[str] = None
+    eligible: bool = True
+    blocked_reasons: List[str] = Field(default_factory=list)
+    blocked_reason_text: List[str] = Field(default_factory=list)
+    s_adj: Optional[float] = None
 
 
 class FrontendEventCreate(BaseModel):
@@ -151,6 +156,58 @@ def create_event(event: FrontendEventCreate) -> dict:
     return {"id": event_id}
 
 
+def _haversine_km(a_lat: float, a_lng: float, b_lat: float, b_lng: float) -> float:
+    from math import asin, cos, radians, sin, sqrt
+
+    r = 6371.0
+    d_lat = radians(b_lat - a_lat)
+    d_lng = radians(b_lng - a_lng)
+    la1 = radians(a_lat)
+    la2 = radians(b_lat)
+    h = sin(d_lat / 2) ** 2 + cos(la1) * cos(la2) * sin(d_lng / 2) ** 2
+    return 2 * r * asin(sqrt(h))
+
+
+def _eligibility(
+    user: User,
+    opp: Opportunity,
+    participants: List[str],
+    interactions,
+) -> tuple[bool, List[str], List[str]]:
+    blocked: List[str] = []
+    blocked_text: List[str] = []
+
+    features, _ = compute_feature_vector(user, opp, interactions)
+    availability_ok = features["availability_ok"] > 0.5
+    if not availability_ok:
+        blocked.append("NOT_IN_AVAILABILITY")
+        suffix = f" ({opp.time_bucket})" if opp.time_bucket else ""
+        blocked_text.append(f"Not in your availability{suffix}")
+
+    # Distance check only if both user and opp have non-zero coords.
+    distance_km = None
+    if (user.lat or user.lng) and (opp.lat or opp.lng):
+        distance_km = _haversine_km(user.lat, user.lng, opp.lat, opp.lng)
+        if features["travel_penalty"] >= 1.0:
+            blocked.append("TOO_FAR")
+            blocked_text.append(f"Too far ({distance_km:.1f} km away)")
+
+    is_full = len(participants) >= opp.capacity
+    if is_full:
+        blocked.append("FULL")
+        blocked_text.append("Full")
+
+    eligible = len(blocked) == 0
+    return eligible, blocked, blocked_text
+
+
+def _parse_dt(value: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return datetime.max
+
+
 @router.get("/events", response_model=List[FrontendEvent])
 def list_events(user_id: Optional[str] = Query(None)) -> List[FrontendEvent]:
     store = get_store()
@@ -188,9 +245,23 @@ def list_events(user_id: Optional[str] = Query(None)) -> List[FrontendEvent]:
         location = f"{opp.lat:.4f},{opp.lng:.4f}"
         pulse = store.prices.get(opp.id, 50.0)
         expl = explanations.get(f"{user.id}|{opp.id}") if user else None
-        score = user_scores.get(opp.id)
+        score = user_scores.get(opp.id) if user else None
+        eligible = True
+        blocked_reasons: List[str] = []
+        blocked_reason_text: List[str] = []
+        if user:
+            eligible, blocked_reasons, blocked_reason_text = _eligibility(
+                user,
+                opp,
+                participants,
+                store.interactions,
+            )
         s_ml = expl.breakdown.get("s_ml", score) if expl and score is not None else None
         reasons = expl.reason_chips if expl else []
+        if not eligible:
+            s_ml = None
+            reasons = []
+            score = None
         results.append(
             FrontendEvent(
                 id=opp.id,
@@ -202,13 +273,17 @@ def list_events(user_id: Optional[str] = Query(None)) -> List[FrontendEvent]:
                 isFull=is_full,
                 location=location,
                 tags=opp.tags,
+                imageUrl=opp.image_url,
                 fitScore=float(s_ml) if s_ml is not None else None,
                 pulse=float(pulse),
                 reasons=reasons,
-                imageUrl=opp.image_url,
+                eligible=eligible,
+                blocked_reasons=blocked_reasons,
+                blocked_reason_text=blocked_reason_text,
+                s_adj=float(score) if score is not None else None,
             )
         )
-        if user:
+        if user and eligible:
             store.record_feedback({"user_id": user.id, "opp_id": opp.id, "event": "shown"})
             if expl:
                 feature_snapshot = {
@@ -248,58 +323,82 @@ def recommended_events(user_id: Optional[str] = Query(None)) -> List[FrontendEve
     if not user:
         return []
 
-    score_matrix, explanations = solver.build_score_matrix([user], opps, store)
+    pricing_overrides = getattr(store, "demo_pricing_overrides", None)
+    score_matrix, explanations = solver.build_score_matrix(
+        [user],
+        opps,
+        store,
+        pricing_overrides=pricing_overrides,
+    )
     user_scores = score_matrix.get(user.id, {})
-    scored: list[tuple[Opportunity, float]] = []
+
+    eligible_items: list[tuple[float, FrontendEvent]] = []
+    blocked_items: list[tuple[datetime, FrontendEvent]] = []
+
     for opp in opps:
-        score = user_scores.get(opp.id)
-        if score is None:
-            continue
-        scored.append((opp, score))
-
-    scored.sort(key=lambda x: x[1], reverse=True)
-
-    results: List[FrontendEvent] = []
-    for opp, score in scored:
         participants = list(store.rsvps.get(opp.id, set()))
         is_full = len(participants) >= opp.capacity
         dt = opp.time or datetime.now(timezone.utc).isoformat()
         location = f"{opp.lat:.4f},{opp.lng:.4f}"
         pulse = store.prices.get(opp.id, 50.0)
-        expl = explanations.get(f"{user.id}|{opp.id}")
-        s_ml = expl.breakdown.get("s_ml", score) if expl else score
-        reasons = expl.reason_chips if expl else []
-        results.append(
-            FrontendEvent(
-                id=opp.id,
-                description=opp.description or opp.title,
-                creator="Flok",
-                dateTime=dt,
-                participants=participants,
-                capacity=opp.capacity,
-                isFull=is_full,
-                location=location,
-                tags=opp.tags,
-                fitScore=float(s_ml),
-                pulse=float(pulse),
-                reasons=reasons,
-                imageUrl=opp.image_url,
-            )
-        )
-        store.record_feedback({"user_id": user.id, "opp_id": opp.id, "event": "shown"})
-        if expl:
-            feature_snapshot = {
-                "interest": expl.breakdown.get("interest", 0.0),
-                "goal_match": expl.breakdown.get("goal_match", 0.0),
-                "group_match": expl.breakdown.get("group_match", 0.0),
-                "travel_penalty": expl.breakdown.get("travel_penalty", 0.0),
-                "intensity_mismatch": expl.breakdown.get("intensity_mismatch", 0.0),
-                "novelty_bonus": expl.breakdown.get("novelty_bonus", 0.0),
-                "pulse_centered": expl.breakdown.get("pulse_centered", 0.0),
-                "availability_ok": 1.0,
-            }
-            store.log_impression(user.id, opp.id, feature_snapshot, pulse)
 
+        score = user_scores.get(opp.id)
+        expl = explanations.get(f"{user.id}|{opp.id}")
+        eligible, blocked_reasons, blocked_reason_text = _eligibility(
+            user,
+            opp,
+            participants,
+            store.interactions,
+        )
+
+        s_ml = expl.breakdown.get("s_ml", score) if expl and score is not None else None
+        reasons = expl.reason_chips if expl else []
+        if not eligible:
+            s_ml = None
+            reasons = []
+            score = None
+
+        event = FrontendEvent(
+            id=opp.id,
+            description=opp.description or opp.title,
+            creator="Flok",
+            dateTime=dt,
+            participants=participants,
+            capacity=opp.capacity,
+            isFull=is_full,
+            location=location,
+            tags=opp.tags,
+            imageUrl=opp.image_url,
+            fitScore=float(s_ml) if s_ml is not None else None,
+            pulse=float(pulse),
+            reasons=reasons,
+            eligible=eligible,
+            blocked_reasons=blocked_reasons,
+            blocked_reason_text=blocked_reason_text,
+            s_adj=float(score) if score is not None else None,
+        )
+
+        if eligible and score is not None:
+            eligible_items.append((float(score), event))
+            store.record_feedback({"user_id": user.id, "opp_id": opp.id, "event": "shown"})
+            if expl:
+                feature_snapshot = {
+                    "interest": expl.breakdown.get("interest", 0.0),
+                    "goal_match": expl.breakdown.get("goal_match", 0.0),
+                    "group_match": expl.breakdown.get("group_match", 0.0),
+                    "travel_penalty": expl.breakdown.get("travel_penalty", 0.0),
+                    "intensity_mismatch": expl.breakdown.get("intensity_mismatch", 0.0),
+                    "novelty_bonus": expl.breakdown.get("novelty_bonus", 0.0),
+                    "pulse_centered": expl.breakdown.get("pulse_centered", 0.0),
+                    "availability_ok": 1.0,
+                }
+                store.log_impression(user.id, opp.id, feature_snapshot, pulse)
+        else:
+            blocked_items.append((_parse_dt(dt), event))
+
+    eligible_items.sort(key=lambda item: item[0], reverse=True)
+    blocked_items.sort(key=lambda item: item[0])
+    results = [item for _, item in eligible_items] + [item for _, item in blocked_items]
     return results
 
 

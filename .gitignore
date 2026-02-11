@@ -45,3 +45,6 @@ Thumbs.db
 *.swo
 *.tmp
 *.log
+
+# App data logs
+apps/api/data/impressions.jsonl

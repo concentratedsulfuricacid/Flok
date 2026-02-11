@@ -30,7 +30,7 @@ flowchart LR
   UI -->|"GET /api/events/recommended"| API["FastAPI backend"]
   UI -->|"POST /feedback"| API
   API --> P["Pulse (0–100 demand pressure)"]
-  API --> R["Capacity-aware ranking\nfit − λ·(pulse−50)"]
+  API --> R["Capacity-aware ranking"]
   R --> UI
 ```
 

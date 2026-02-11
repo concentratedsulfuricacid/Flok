@@ -20,6 +20,8 @@ In short: most feeds optimize for engagement under the assumption that more eyeb
 - **Routes demand instead of concentrating it.** As an event gets overdemanded, Flok nudges *marginal* users toward strong alternatives—reducing “Full” failures without hiding truly-best matches.
 - **Improves long-tail discovery.** Community-created and newer events get a real chance to fill because the system avoids feeding only the early winners.
 - **Supports healthier access.** When “fastest finger wins” isn’t the dominant strategy, more people can reliably participate.
+- **Grounded in math + ML.** Under the hood, Flok estimates RSVP probability with logistic regression (`S_ml ∈ [0,1]`) and models demand pressure with a bounded pulse (`0..100`), then combines them into a capacity-aware score: `S_adj = S_ml - λ·(pulse - 50)` (details in [`docs/math-and-ml.md`](docs/math-and-ml.md)).
+- **Accessibility Features.** Flok includes accessibility features like auto-font size adjustment, high-contrast UI and dyslexia-friendly fonts. Flok's UI is designed with **WCAG 2.1 AA** in mind to increase accessibility for our users .  
 
 The core idea: treat *capacity* as a first-class constraint in ranking, so each recommendation is a plausible “yes” in the real world.
 
@@ -67,6 +69,11 @@ npm run dev
    - the “hot” event stays high for the **high-fit** user,
    - but gets pushed down for the **mid-fit** user as demand rises.
 
+## Accessibility
+- Open `http://127.0.0.1:5173/accessibility-settings` to enable **Large Text**, **High Contrast**, and a **dyslexia-friendly font**.
+- Keyboard + focus: visible `:focus-visible` rings and a “Skip to main content” link.
+- Screen reader cues: key controls and dialogs use `aria-*` labels; transient UI messages announce via `aria-live`.
+
 ## Key endpoints
 - `POST /seed` — generate synthetic users + opportunities.
 - `GET /api/events/recommended?user_id=...` — ranked list (includes eligibility + reasons).
@@ -79,4 +86,7 @@ npm run dev
 - `POST /demo/simulate` — spike demand for the hot event (Demo Lab levels).
 
 ## Deeper docs
-- See `docs/README.md` for the algorithm + implementation notes.
+- See `docs/README.md` for deeper docs.
+- Math + ML (logistic regression + pulse): `docs/math-and-ml.md`
+- End-to-end deep dive: `docs/deep-dive.md`
+- Accessibility notes: `docs/accessibility.md`

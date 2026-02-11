@@ -2,6 +2,8 @@
 
 This is the longer-form reference for how Flok works (math + endpoints + where to look in the code). For the short, story-driven overview, see the repo root `README.md`.
 
+For a dedicated write-up of the equations and the logistic regression “fit” model used in scoring, see `docs/math-and-ml.md`.
+
 ## Motivation (the “why”)
 Most social/event apps implicitly optimize for attention: show what gets clicks, amplify what’s trending, and assume engagement can always convert into participation.
 

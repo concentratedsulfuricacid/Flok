@@ -6,27 +6,28 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      "/api": {
+      "^/api(/|$)": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
-      "/feed": {
+      "^/feed(/|$)": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
-      "/metrics": {
+      "^/metrics(/|$)": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
-      "/trending": {
+      "^/trending(/|$)": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
-      "/demo": {
+      // Avoid prefix collisions like "/demoUser.json" being proxied to the API.
+      "^/demo(/|$)": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
-      "/seed": {
+      "^/seed(/|$)": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },

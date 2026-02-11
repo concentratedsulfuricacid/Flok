@@ -4,7 +4,6 @@ import {
   RefreshCw,
   Sparkles,
   ArrowUpRight,
-  TrendingUp,
   Compass,
 } from "lucide-react";
 import { loadDemoUserProfile } from "../demo/demoUserStore";
@@ -22,20 +21,10 @@ export type Event = {
   fitScore?: number;
   pulse?: number;
   reasons?: string[];
-};
-
-type FeedItem = {
-  event_id: string;
-  title: string;
-  category: string;
-  fit_score: number;
-  pulse: number;
-  reasons: string[];
-};
-
-type FeedResponse = {
-  user_id: string;
-  items: FeedItem[];
+  eligible?: boolean;
+  blocked_reasons?: string[];
+  blocked_reason_text?: string[];
+  s_adj?: number;
 };
 
 type MetricsResponse = {
@@ -53,8 +42,32 @@ type TrendingItem = {
   pulse_delta: number;
 };
 
-type DemoResponse = {
+type DemoSimulateResponse = {
+  event_id: string;
+  before_pulse: number;
+  after_pulse: number;
+  before_fill: number;
+  after_fill: number;
   movers?: TrendingItem[];
+};
+
+type DemoUserInfo = {
+  user_id: string;
+  label: string;
+  name: string;
+  interests: string[];
+  availability: string[];
+  goal?: string | null;
+  max_travel_mins?: number | null;
+  group_pref?: string | null;
+  intensity_pref?: string | null;
+  location?: string | null;
+};
+
+type DemoSetupResponse = {
+  hot_event_id: string;
+  hot_event_title: string;
+  users: DemoUserInfo[];
 };
 
 type FeedTab = "all" | "near";
@@ -62,11 +75,12 @@ type FeedTab = "all" | "near";
 const NEARBY_RADIUS_KM = 5;
 
 /**
- * TODO (backend): implement GET /api/events/recommended => Event[]
- * Backend returns the list already ordered (recommended ranking).
+ * Recommended list already ordered by the backend's final ranking score.
  */
 export async function getAllEvents(userId?: string): Promise<Event[]> {
-  const url = userId ? `/api/events?user_id=${encodeURIComponent(userId)}` : "/api/events";
+  const url = userId
+    ? `/api/events/recommended?user_id=${encodeURIComponent(userId)}`
+    : "/api/events/recommended";
   const res = await fetch(url, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
@@ -76,13 +90,23 @@ export async function getAllEvents(userId?: string): Promise<Event[]> {
   return (await res.json()) as Event[];
 }
 
-async function getFeed(userId: string, limit = 10): Promise<FeedResponse> {
-  const res = await fetch(`/feed?user_id=${encodeURIComponent(userId)}&limit=${limit}`, {
-    method: "GET",
+async function setupDemoScenario(): Promise<DemoSetupResponse> {
+  const res = await fetch("/demo/setup", {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
   });
-  if (!res.ok) throw new Error(`Failed to fetch feed: ${res.status}`);
-  return (await res.json()) as FeedResponse;
+  if (!res.ok) throw new Error(`Failed to setup demo: ${res.status}`);
+  return (await res.json()) as DemoSetupResponse;
+}
+
+async function spikeDemo(level: number, hotEventId: string): Promise<DemoSimulateResponse> {
+  const res = await fetch("/demo/simulate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ level, hot_event_id: hotEventId }),
+  });
+  if (!res.ok) throw new Error(`Failed to spike demo: ${res.status}`);
+  return (await res.json()) as DemoSimulateResponse;
 }
 
 async function getMetrics(): Promise<MetricsResponse> {
@@ -128,12 +152,24 @@ const formatRelativeTime = (value: Date) => {
 };
 
 const parseLocation = (value?: string | null) => {
-  if (!value || !value.includes(",")) return null;
-  const [latRaw, lngRaw] = value.split(",", 2);
-  const lat = Number(latRaw.trim());
-  const lng = Number(lngRaw.trim());
-  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
-  return { lat, lng };
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  if (trimmed.includes(",")) {
+    const [latRaw, lngRaw] = trimmed.split(",", 2);
+    const lat = Number(latRaw.trim());
+    const lng = Number(lngRaw.trim());
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+    return { lat, lng };
+  }
+
+  // Demo-friendly fallback for named locations.
+  const key = trimmed.toLowerCase();
+  const named: Record<string, { lat: number; lng: number }> = {
+    "pasir ris east": { lat: 1.3728, lng: 103.9493 },
+    "pasir ris": { lat: 1.3728, lng: 103.9493 },
+  };
+  return named[key] ?? null;
 };
 
 const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
@@ -154,9 +190,14 @@ function EventCard({ event, index }: { event: Event; index: number }) {
   const dt = useMemo(() => new Date(event.dateTime), [event.dateTime]);
   const spotsLeft = Math.max(event.capacity - event.participants.length, 0);
   const fillRatio = event.capacity ? event.participants.length / event.capacity : 0;
-  const status = event.isFull ? "Offer" : "Need";
-  const statusTone = event.isFull
-    ? "bg-[var(--color-chip)] text-[var(--color-accent)]"
+  const eligible = event.eligible ?? true;
+  const status = event.isFull
+    ? "Full"
+    : eligible
+      ? "Recommended for you"
+      : "Not eligible";
+  const statusTone = event.isFull || !eligible
+    ? "bg-[var(--color-mist)] text-[var(--color-muted)]"
     : "bg-[var(--color-accent)] text-white";
 
   return (
@@ -187,10 +228,24 @@ function EventCard({ event, index }: { event: Event; index: number }) {
         <div className="text-base font-semibold text-[var(--color-ink)]">
           {event.description}
         </div>
+        {!eligible && event.blocked_reason_text && event.blocked_reason_text.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {event.blocked_reason_text.map((reason) => (
+              <span
+                key={reason}
+                className="rounded-full bg-[var(--color-mist)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted)]"
+              >
+                {reason}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="mt-2 text-sm text-[var(--color-muted)]">
-          {event.isFull
-            ? "This gathering is currently full."
-            : `Looking for ${spotsLeft} more participant${spotsLeft === 1 ? "" : "s"}.`}
+          {eligible
+            ? event.isFull
+              ? "This gathering is currently full."
+              : `Looking for ${spotsLeft} more participant${spotsLeft === 1 ? "" : "s"}.`
+            : "Not eligible right now."}
         </div>
       </div>
 
@@ -202,7 +257,7 @@ function EventCard({ event, index }: { event: Event; index: number }) {
       </div>
       <div className="mt-2 flex items-center justify-between text-xs text-[var(--color-muted)]">
         <span>
-          {event.participants.length}/{event.capacity} spots filled
+          {event.participants.length}/{event.capacity} spots rsvp-ed
         </span>
         <span>{dt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
       </div>
@@ -253,22 +308,25 @@ function DemoPanel({
   onToggle,
   demoBusy,
   demoError,
-  onSimulate,
-  onReset,
-  metrics,
-  movers,
-  feedPreview,
+  scenario,
+  demoPulse,
+  demoLevel,
+  onSetup,
+  onPopulate,
+  onSpike,
 }: {
   demoMode: boolean;
   onToggle: () => void;
   demoBusy: boolean;
   demoError: string | null;
-  onSimulate: () => void;
-  onReset: () => void;
-  metrics: MetricsResponse["metrics"] | null;
-  movers: TrendingItem[];
-  feedPreview: FeedItem[];
+  scenario: DemoSetupResponse | null;
+  demoPulse: number | null;
+  demoLevel: number;
+  onSetup: () => void;
+  onPopulate: () => void;
+  onSpike: (level: number) => void;
 }) {
+  const demoActive = Boolean(scenario);
   return (
     <section className="rounded-[28px] border border-white/70 bg-white/75 p-4 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.55)] backdrop-blur">
       <div className="flex items-start justify-between gap-4">
@@ -298,72 +356,106 @@ function DemoPanel({
         <div className="mt-4 space-y-3">
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={onSimulate}
+              onClick={onSetup}
               disabled={demoBusy}
               className="rounded-full bg-[var(--color-ink)] px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
             >
-              Simulate demand spike
+              Setup demo scenario
             </button>
             <button
-              onClick={onReset}
-              disabled={demoBusy}
+              onClick={onPopulate}
+              disabled={demoBusy || demoActive}
               className="rounded-full border border-[var(--color-mist)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-muted)] transition hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
             >
-              Reset / Reseed
+              Populate events
             </button>
           </div>
+          {demoActive && (
+            <div className="text-[10px] text-[var(--color-muted)]">
+              Demo scenario active. Toggle off Demo Lab to exit.
+            </div>
+          )}
           {demoError && <div className="text-xs font-semibold text-rose-600">{demoError}</div>}
 
-          {(metrics || movers.length > 0 || feedPreview.length > 0) && (
-            <div className="space-y-3">
-              <div className="rounded-2xl bg-[var(--color-mist)]/80 p-3 text-xs text-[var(--color-muted)]">
-                <div className="font-semibold text-[var(--color-ink)]">Metrics</div>
-                {metrics ? (
-                  <div className="mt-2 space-y-1">
-                    <div>Utilization: {(metrics.utilization * 100).toFixed(1)}%</div>
-                    <div>Avg fill: {(metrics.avg_fill_ratio * 100).toFixed(1)}%</div>
-                    <div>Fairness gap: {metrics.fairness_gap.toFixed(3)}</div>
-                  </div>
-                ) : (
-                  <div className="mt-2 text-[var(--color-muted)]">No metrics yet.</div>
-                )}
+          {scenario && (
+            <div className="space-y-3 rounded-2xl bg-[var(--color-mist)]/80 p-3 text-xs text-[var(--color-muted)]">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold text-[var(--color-ink)]">{scenario.hot_event_title}</div>
+                <span className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-[var(--color-accent)]">
+                  Level {demoLevel}
+                </span>
               </div>
-
-              <div className="rounded-2xl bg-[var(--color-mist)]/80 p-3 text-xs text-[var(--color-muted)]">
-                <div className="flex items-center gap-2 font-semibold text-[var(--color-ink)]">
-                  <TrendingUp className="h-4 w-4 text-[var(--color-accent)]" />
-                  Top movers
-                </div>
-                {movers.length > 0 ? (
-                  <div className="mt-2 space-y-1">
-                    {movers.slice(0, 3).map((m) => (
-                      <div key={m.event_id} className="flex items-center justify-between">
-                        <span>{m.title}</span>
-                        <span className="text-[var(--color-accent)]">
-                          {m.pulse_delta >= 0 ? "+" : ""}{m.pulse_delta.toFixed(1)}
+              <div className="flex items-center justify-between">
+                <span>Pulse</span>
+                <span className="font-semibold text-[var(--color-ink)]">
+                  {demoPulse ? demoPulse.toFixed(1) : "—"}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3].map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => onSpike(level)}
+                    disabled={demoBusy}
+                    className="rounded-full bg-white px-3 py-1 text-[10px] font-semibold text-[var(--color-ink)] ring-1 ring-white/60 transition hover:-translate-y-0.5 hover:shadow disabled:opacity-60"
+                  >
+                    Spike level {level}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-2 pt-2">
+                {scenario.users.map((user) => (
+                  <div key={user.user_id} className="rounded-2xl bg-white/80 p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-semibold text-[var(--color-ink)]">{user.label}</div>
+                      <div className="text-[10px] text-[var(--color-muted)]">{user.name}</div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-[var(--color-muted)]">
+                      {user.location && (
+                        <span className="rounded-full bg-[var(--color-mist)] px-2 py-1">
+                          {user.location}
                         </span>
+                      )}
+                      {user.goal && (
+                        <span className="rounded-full bg-[var(--color-mist)] px-2 py-1">
+                          Goal: {user.goal}
+                        </span>
+                      )}
+                      {typeof user.max_travel_mins === "number" && (
+                        <span className="rounded-full bg-[var(--color-mist)] px-2 py-1">
+                          {user.max_travel_mins} min travel
+                        </span>
+                      )}
+                      {user.group_pref && (
+                        <span className="rounded-full bg-[var(--color-mist)] px-2 py-1">
+                          Group: {user.group_pref}
+                        </span>
+                      )}
+                      {user.intensity_pref && (
+                        <span className="rounded-full bg-[var(--color-mist)] px-2 py-1">
+                          Intensity: {user.intensity_pref}
+                        </span>
+                      )}
+                      {user.availability?.length ? (
+                        <span className="rounded-full bg-[var(--color-mist)] px-2 py-1">
+                          Avail: {user.availability.join(", ")}
+                        </span>
+                      ) : null}
+                    </div>
+                    {user.interests?.length ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {user.interests.map((interest) => (
+                          <span
+                            key={interest}
+                            className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-[var(--color-accent)] ring-1 ring-white/60"
+                          >
+                            {interest}
+                          </span>
+                        ))}
                       </div>
-                    ))}
+                    ) : null}
                   </div>
-                ) : (
-                  <div className="mt-2 text-[var(--color-muted)]">No movers yet.</div>
-                )}
-              </div>
-
-              <div className="rounded-2xl bg-[var(--color-mist)]/80 p-3 text-xs text-[var(--color-muted)]">
-                <div className="font-semibold text-[var(--color-ink)]">Feed preview</div>
-                {feedPreview.length > 0 ? (
-                  <div className="mt-2 space-y-1">
-                    {feedPreview.slice(0, 3).map((item) => (
-                      <div key={item.event_id} className="flex items-center justify-between">
-                        <span>{item.title}</span>
-                        <span className="text-[var(--color-muted)]">{item.fit_score.toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-2 text-[var(--color-muted)]">No feed yet.</div>
-                )}
+                ))}
               </div>
             </div>
           )}
@@ -382,32 +474,24 @@ export default function EventsPage() {
   const [demoMode, setDemoMode] = useState(false);
   const [demoBusy, setDemoBusy] = useState(false);
   const [demoError, setDemoError] = useState<string | null>(null);
-  const [feedPreview, setFeedPreview] = useState<FeedItem[]>([]);
   const [metrics, setMetrics] = useState<MetricsResponse["metrics"] | null>(null);
   const [movers, setMovers] = useState<TrendingItem[]>([]);
+  const [demoScenario, setDemoScenario] = useState<DemoSetupResponse | null>(null);
+  const [demoFeeds, setDemoFeeds] = useState<Record<string, Event[]>>({});
+  const [demoPulse, setDemoPulse] = useState<number | null>(null);
+  const [demoLevel, setDemoLevel] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<FeedTab>("all");
   const userCoords = useMemo(() => parseLocation(demoUser?.location), [demoUser?.location]);
 
-  const sortedEvents = useMemo(() => {
-    return [...events].sort((a, b) => {
-      if (a.isFull !== b.isFull) {
-        return a.isFull ? 1 : -1;
-      }
-      const aTime = new Date(a.dateTime).getTime();
-      const bTime = new Date(b.dateTime).getTime();
-      return aTime - bTime;
-    });
-  }, [events]);
-
   const filteredEvents = useMemo(() => {
-    if (activeTab === "all") return sortedEvents;
-    if (!userCoords) return sortedEvents;
-    return sortedEvents.filter((event) => {
+    if (activeTab === "all") return events;
+    if (!userCoords) return events;
+    return events.filter((event) => {
       const coords = parseLocation(event.location);
       if (!coords) return false;
       return haversineKm(userCoords, coords) <= NEARBY_RADIUS_KM;
     });
-  }, [activeTab, sortedEvents, userCoords]);
+  }, [activeTab, events, userCoords]);
 
   useEffect(() => {
     (async () => {
@@ -475,56 +559,53 @@ export default function EventsPage() {
     void load();
   }, []);
 
-  const refreshDemoData = async (uid: string) => {
-    const [feedRes, metricsRes, trendingRes] = await Promise.allSettled([
-      getFeed(uid, 6),
-      getMetrics(),
-      getTrending(5),
-    ]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const metricsRes = await getMetrics();
+        setMetrics(metricsRes.metrics);
+      } catch {
+        setMetrics(null);
+      }
+    })();
+    (async () => {
+      try {
+        const trendingItems = await getTrending(5);
+        setMovers(trendingItems);
+      } catch {
+        setMovers([]);
+      }
+    })();
+  }, []);
 
-    if (feedRes.status === "fulfilled") {
-      setFeedPreview(feedRes.value.items);
-    }
-    if (metricsRes.status === "fulfilled") {
-      setMetrics(metricsRes.value.metrics);
-    }
-    if (trendingRes.status === "fulfilled") {
-      const trendingItems = trendingRes.value;
-      setMovers((prev) => {
-        if (trendingItems.length === 0) return prev;
-        const hasMovement = trendingItems.some((item) => Math.abs(item.pulse_delta) > 1e-6);
-        if (!hasMovement && prev.length > 0) return prev;
-        return trendingItems;
-      });
-    }
+  const loadDemoFeeds = async (users: DemoUserInfo[]) => {
+    const results = await Promise.all(
+      users.map(async (user) => ({ userId: user.user_id, items: await getAllEvents(user.user_id) }))
+    );
+    const next: Record<string, Event[]> = {};
+    results.forEach((res) => {
+      next[res.userId] = res.items;
+    });
+    setDemoFeeds(next);
   };
 
-  const simulateDemandSpike = async () => {
+  const setupDemo = async () => {
     setDemoBusy(true);
     setDemoError(null);
     try {
-      const uid = await ensureUserId();
-      if (!uid) throw new Error("Missing demo user.");
-      const res = await fetch("/demo/simulate?scenario=oversubscribe_one_event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) throw new Error(`Demo simulate failed: ${res.status}`);
-      const data = (await res.json()) as DemoResponse;
-      if (data.movers && data.movers.length > 0) {
-        setMovers(data.movers);
-      }
-      await refreshDemoData(uid);
-      await load();
+      const scenario = await setupDemoScenario();
+      setDemoScenario(scenario);
+      setDemoLevel(0);
+      setDemoPulse(50);
+      await loadDemoFeeds(scenario.users);
     } catch (e) {
-      setDemoError(e instanceof Error ? e.message : "Demo simulation failed.");
+      setDemoError(e instanceof Error ? e.message : "Failed to setup demo.");
     } finally {
       setDemoBusy(false);
     }
   };
 
-  const resetDemo = async () => {
+  const populateEvents = async () => {
     setDemoBusy(true);
     setDemoError(null);
     try {
@@ -536,19 +617,42 @@ export default function EventsPage() {
       if (!res.ok) throw new Error(`Seed failed: ${res.status}`);
       localStorage.removeItem("flok.apiUserId");
       setUserId(null);
+      setDemoScenario(null);
+      setDemoFeeds({});
+      setDemoLevel(0);
+      setDemoPulse(null);
       const uid = await ensureUserId(true);
       if (uid) {
-        await refreshDemoData(uid);
+        await load();
       }
-      await load();
     } catch (e) {
-      setDemoError(e instanceof Error ? e.message : "Failed to reset demo.");
+      setDemoError(e instanceof Error ? e.message : "Failed to populate events.");
+    } finally {
+      setDemoBusy(false);
+    }
+  };
+
+  const spikeLevel = async (level: number) => {
+    if (!demoScenario) return;
+    setDemoBusy(true);
+    setDemoError(null);
+    try {
+      const res = await spikeDemo(level, demoScenario.hot_event_id);
+      setDemoPulse(res.after_pulse);
+      setDemoLevel(level);
+      if (res.movers && res.movers.length > 0) {
+        setMovers(res.movers);
+      }
+      await loadDemoFeeds(demoScenario.users);
+    } catch (e) {
+      setDemoError(e instanceof Error ? e.message : "Demo spike failed.");
     } finally {
       setDemoBusy(false);
     }
   };
 
   const greetingName = demoUser?.name ?? "there";
+  const showMainFeed = !(demoMode && demoScenario);
 
   return (
     <div className="relative space-y-6">
@@ -625,33 +729,81 @@ export default function EventsPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
-          {loading ? (
-            <div className="rounded-[28px] border border-white/70 bg-white/80 p-6 text-sm text-[var(--color-muted)] shadow">
-              Loading events…
-            </div>
-          ) : error ? (
-            <div className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow">
-              <div className="text-sm font-semibold text-rose-600">Couldn’t load events</div>
-              <div className="mt-2 text-sm text-[var(--color-muted)]">
-                {error}
-                <div className="mt-2 text-[11px] text-[var(--color-muted)]">
-                  Expected endpoint: <span className="font-mono">GET /api/events</span>
+          {showMainFeed && (
+            <>
+              {loading ? (
+                <div className="rounded-[28px] border border-white/70 bg-white/80 p-6 text-sm text-[var(--color-muted)] shadow">
+                  Loading events…
                 </div>
+              ) : error ? (
+                <div className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow">
+                  <div className="text-sm font-semibold text-rose-600">Couldn’t load events</div>
+                  <div className="mt-2 text-sm text-[var(--color-muted)]">
+                    {error}
+                    <div className="mt-2 text-[11px] text-[var(--color-muted)]">
+                      Expected endpoint: <span className="font-mono">GET /api/events</span>
+                    </div>
+                  </div>
+                </div>
+              ) : filteredEvents.length === 0 ? (
+                <div className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow">
+                  <div className="text-sm font-semibold text-[var(--color-ink)]">No matching posts</div>
+                  <div className="mt-2 text-sm text-[var(--color-muted)]">
+                    Try switching tabs or refresh the feed.
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredEvents.map((event, idx) => (
+                    <EventCard key={`${event.creator}-${event.dateTime}-${idx}`} event={event} index={idx} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {demoMode && demoScenario && (
+            <section className="mt-6 space-y-4">
+              <div>
+                <div className="text-sm font-semibold text-[var(--color-ink)]">Demo feeds</div>
+                <p className="text-xs text-[var(--color-muted)]">
+                  Ranked after spike level {demoLevel}.
+                </p>
               </div>
-            </div>
-          ) : filteredEvents.length === 0 ? (
-            <div className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow">
-              <div className="text-sm font-semibold text-[var(--color-ink)]">No matching posts</div>
-              <div className="mt-2 text-sm text-[var(--color-muted)]">
-                Try switching tabs or refresh the feed.
+              <div className="grid gap-4 md:grid-cols-2">
+                {demoScenario.users.map((user) => {
+                  const items = demoFeeds[user.user_id] ?? [];
+                  return (
+                    <div
+                      key={user.user_id}
+                      className="rounded-[24px] border border-white/70 bg-white/80 p-4 shadow"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-[var(--color-ink)]">
+                          {user.label}
+                        </div>
+                        <div className="text-xs text-[var(--color-muted)]">{user.name}</div>
+                      </div>
+                      {items.length > 0 ? (
+                        <div className="mt-3 space-y-3">
+                          {items.slice(0, 4).map((event, idx) => (
+                            <EventCard
+                              key={`${user.user_id}-${event.description}-${idx}`}
+                              event={event}
+                              index={idx}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-xs text-[var(--color-muted)]">
+                          No feed yet.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredEvents.map((event, idx) => (
-                <EventCard key={`${event.creator}-${event.dateTime}-${idx}`} event={event} index={idx} />
-              ))}
-            </div>
+            </section>
           )}
         </div>
 
@@ -719,14 +871,27 @@ export default function EventsPage() {
 
           <DemoPanel
             demoMode={demoMode}
-            onToggle={() => setDemoMode((prev) => !prev)}
+            onToggle={() => {
+              setDemoMode((prev) => {
+                const next = !prev;
+                if (!next) {
+                  setDemoScenario(null);
+                  setDemoFeeds({});
+                  setDemoLevel(0);
+                  setDemoPulse(null);
+                  setDemoError(null);
+                }
+                return next;
+              });
+            }}
             demoBusy={demoBusy}
             demoError={demoError}
-            onSimulate={simulateDemandSpike}
-            onReset={resetDemo}
-            metrics={metrics}
-            movers={movers}
-            feedPreview={feedPreview}
+            scenario={demoScenario}
+            demoPulse={demoPulse}
+            demoLevel={demoLevel}
+            onSetup={setupDemo}
+            onPopulate={populateEvents}
+            onSpike={spikeLevel}
           />
         </div>
       </div>

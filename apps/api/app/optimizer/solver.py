@@ -97,7 +97,14 @@ def build_score_matrix(
             s_ml_raw = get_model().predict_proba(ml_features)
             s_ml = s_ml_raw
             newcomer_boost = 0.0
-            if is_newcomer and opp.beginner_friendly and settings.newcomer_boost > 0:
+            override = None
+            demo_overrides = getattr(store, "demo_score_overrides", None)
+            if demo_overrides:
+                override = demo_overrides.get((user.id, opp.id))
+            if override is not None:
+                s_ml_raw = float(override)
+                s_ml = s_ml_raw
+            elif is_newcomer and opp.beginner_friendly and settings.newcomer_boost > 0:
                 newcomer_boost = settings.newcomer_boost
                 s_ml = min(1.0, s_ml_raw * (1.0 + newcomer_boost))
                 reason_chips = list(reason_chips) + ["Beginner-friendly for newcomers"]

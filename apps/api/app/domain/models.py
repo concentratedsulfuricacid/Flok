@@ -318,6 +318,7 @@ class DemoSimulateRequest(BaseModel):
     """Request payload for demo simulation."""
 
     hot_event_id: Optional[str] = None
+    level: Optional[int] = None
     num_users: int = 10
     accept_rate: float = 0.6
     click_rate: float = 0.8
@@ -332,6 +333,29 @@ class DemoSimulateResponse(BaseModel):
     before_fill: float
     after_fill: float
     movers: List[TrendingItem] = Field(default_factory=list)
+
+
+class DemoUserInfo(BaseModel):
+    """Lightweight demo user metadata for UI panels."""
+
+    user_id: str
+    label: str
+    name: str
+    interests: List[str] = Field(default_factory=list)
+    availability: List[str] = Field(default_factory=list)
+    goal: Optional[str] = None
+    max_travel_mins: Optional[int] = None
+    group_pref: Optional[str] = None
+    intensity_pref: Optional[str] = None
+    location: Optional[str] = None
+
+
+class DemoSetupResponse(BaseModel):
+    """Response payload for demo setup."""
+
+    hot_event_id: str
+    hot_event_title: str
+    users: List[DemoUserInfo]
 
 
 class RebalanceResponse(SolveResponse):

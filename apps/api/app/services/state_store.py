@@ -35,6 +35,8 @@ class StateStore:
             self.last_assignment: List[Tuple[str, str]] = []
             self.rsvps: Dict[str, Set[str]] = {}
             self.pulse_history: Dict[str, List[Tuple[str, float]]] = {}
+            self.demo_score_overrides: Dict[Tuple[str, str], float] = {}
+            self.demo_pricing_overrides: Dict[str, float] | None = None
 
     def _ensure_opp_state(self, opp_id: str) -> None:
         """Initialize per-opportunity pricing and counters if missing."""
@@ -75,6 +77,8 @@ class StateStore:
             self.last_assignment = []
             self.rsvps = {}
             self.pulse_history = {}
+            self.demo_score_overrides = {}
+            self.demo_pricing_overrides = None
             for opp_id in self.opps:
                 self._ensure_opp_state(opp_id)
 
@@ -93,6 +97,8 @@ class StateStore:
             self.last_assignment = []
             self.rsvps = {}
             self.pulse_history = {}
+            self.demo_score_overrides = {}
+            self.demo_pricing_overrides = None
             for opp_id in self.opps:
                 self._ensure_opp_state(opp_id)
 

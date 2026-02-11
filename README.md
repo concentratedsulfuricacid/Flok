@@ -1,4 +1,4 @@
-# Flok — capacity-aware event discovery
+# Flok — _Find Your Flock_
 
 Most social/event apps behave as if attention is unlimited. Real-world social opportunities aren’t: seats are scarce, and “great” hangs (dinners, hikes, study groups, volunteer shifts) are often 6–12 people.
 

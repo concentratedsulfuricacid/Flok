@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api")
 
 
 class FrontendEvent(BaseModel):
+    id: str
     description: str
     creator: str
     dateTime: str
@@ -28,6 +29,7 @@ class FrontendEvent(BaseModel):
     fitScore: Optional[float] = None
     pulse: Optional[float] = None
     reasons: List[str] = Field(default_factory=list)
+    imageUrl: Optional[str] = None
 
 
 class FrontendEventCreate(BaseModel):
@@ -39,6 +41,7 @@ class FrontendEventCreate(BaseModel):
     isFull: bool
     location: str
     tags: List[str] = Field(default_factory=list)
+    imageUrl: Optional[str] = None
 
 
 class FrontendFriend(BaseModel):
@@ -51,6 +54,16 @@ class FrontendUserCreate(BaseModel):
     location: Optional[str] = None
     availability: List[str] = Field(default_factory=lambda: ["weeknights", "weekends"])
     goal: Optional[str] = None
+
+
+class FrontendRSVPRequest(BaseModel):
+    user_id: str
+
+
+class FrontendRSVPResponse(BaseModel):
+    event_id: str
+    status: str
+    spots_left: int
 
 
 @router.get("/friends", response_model=List[FrontendFriend])
@@ -130,6 +143,7 @@ def create_event(event: FrontendEventCreate) -> dict:
             group_size="medium",
             intensity="med",
             beginner_friendly=True,
+            image_url=event.imageUrl,
         )
         store.opps[event_id] = opp
         store._ensure_opp_state(event_id)
@@ -179,6 +193,7 @@ def list_events(user_id: Optional[str] = Query(None)) -> List[FrontendEvent]:
         reasons = expl.reason_chips if expl else []
         results.append(
             FrontendEvent(
+                id=opp.id,
                 description=opp.description or opp.title,
                 creator="Flok",
                 dateTime=dt,
@@ -190,6 +205,7 @@ def list_events(user_id: Optional[str] = Query(None)) -> List[FrontendEvent]:
                 fitScore=float(s_ml) if s_ml is not None else None,
                 pulse=float(pulse),
                 reasons=reasons,
+                imageUrl=opp.image_url,
             )
         )
         if user:
@@ -255,6 +271,7 @@ def recommended_events(user_id: Optional[str] = Query(None)) -> List[FrontendEve
         reasons = expl.reason_chips if expl else []
         results.append(
             FrontendEvent(
+                id=opp.id,
                 description=opp.description or opp.title,
                 creator="Flok",
                 dateTime=dt,
@@ -266,6 +283,7 @@ def recommended_events(user_id: Optional[str] = Query(None)) -> List[FrontendEve
                 fitScore=float(s_ml),
                 pulse=float(pulse),
                 reasons=reasons,
+                imageUrl=opp.image_url,
             )
         )
         store.record_feedback({"user_id": user.id, "opp_id": opp.id, "event": "shown"})
@@ -283,3 +301,47 @@ def recommended_events(user_id: Optional[str] = Query(None)) -> List[FrontendEve
             store.log_impression(user.id, opp.id, feature_snapshot, pulse)
 
     return results
+
+
+@router.post("/events/{event_id}/rsvp", response_model=FrontendRSVPResponse)
+def rsvp_event(event_id: str, payload: FrontendRSVPRequest) -> FrontendRSVPResponse:
+    store = get_store()
+    with store.lock:
+        opp = store.opps.get(event_id)
+        if not opp:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if payload.user_id not in store.users:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        rsvp_set = store.rsvps.setdefault(event_id, set())
+        if payload.user_id in rsvp_set:
+            spots_left = max(0, opp.capacity - len(rsvp_set))
+            return FrontendRSVPResponse(event_id=event_id, status="CONFIRMED", spots_left=spots_left)
+
+        if len(rsvp_set) >= opp.capacity:
+            return FrontendRSVPResponse(event_id=event_id, status="FULL", spots_left=0)
+
+        rsvp_set.add(payload.user_id)
+        spots_left = max(0, opp.capacity - len(rsvp_set))
+
+    store.record_feedback({"user_id": payload.user_id, "opp_id": event_id, "event": "accepted"})
+    return FrontendRSVPResponse(event_id=event_id, status="CONFIRMED", spots_left=spots_left)
+
+
+@router.delete("/events/{event_id}/rsvp", response_model=FrontendRSVPResponse)
+def unrsvp_event(event_id: str, payload: FrontendRSVPRequest) -> FrontendRSVPResponse:
+    store = get_store()
+    with store.lock:
+        opp = store.opps.get(event_id)
+        if not opp:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if payload.user_id not in store.users:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        rsvp_set = store.rsvps.setdefault(event_id, set())
+        if payload.user_id in rsvp_set:
+            rsvp_set.remove(payload.user_id)
+        spots_left = max(0, opp.capacity - len(rsvp_set))
+
+    store.record_feedback({"user_id": payload.user_id, "opp_id": event_id, "event": "declined"})
+    return FrontendRSVPResponse(event_id=event_id, status="CANCELLED", spots_left=spots_left)

@@ -2,15 +2,34 @@ from __future__ import annotations
 
 """Demo simulation endpoint."""
 
+import json
+from pathlib import Path
 import random
 
 from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi.responses import JSONResponse
 
 from app.domain.models import DemoSimulateRequest, DemoSimulateResponse, TrendingItem
 from app.optimizer import pricing, solver
 from app.services.state_store import get_store
 
 router = APIRouter()
+REPO_ROOT = Path(__file__).resolve().parents[4]
+DEMO_USER_PATH = REPO_ROOT / "WinUi" / "public" / "demoUser.json"
+FALLBACK_DEMO_USER = {
+    "name": "Demo User",
+    "age": 29,
+    "location": "40.7128,-74.0060",
+    "interests": ["walking", "coffee", "music"],
+    "fitnessLevel": 6,
+}
+
+
+@router.get("/demoUser.json")
+def demo_user_json() -> JSONResponse:
+    if DEMO_USER_PATH.exists():
+        return JSONResponse(content=json.loads(DEMO_USER_PATH.read_text(encoding="utf-8")))
+    return JSONResponse(content=FALLBACK_DEMO_USER)
 
 
 @router.post("/demo/simulate", response_model=DemoSimulateResponse)

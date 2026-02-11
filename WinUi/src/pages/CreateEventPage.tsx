@@ -11,6 +11,7 @@ type Event = {
   isFull: boolean;
   location: string;
   tags: string[];
+  imageUrl?: string;
 };
 
 /**
@@ -52,6 +53,7 @@ export default function CreateEventPage() {
 
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 
   // Seed defaults once profile is available
   useEffect(() => {
@@ -78,6 +80,25 @@ export default function CreateEventPage() {
   };
 
   const removeTag = (t: string) => setTags((prev) => prev.filter((x) => x !== t));
+
+  const onImageSelected = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setFormError("Please select an image file.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const data = typeof reader.result === "string" ? reader.result : "";
+      if (!data) {
+        setFormError("Failed to read selected image.");
+        return;
+      }
+      setImageUrl(data);
+    };
+    reader.onerror = () => setFormError("Failed to read selected image.");
+    reader.readAsDataURL(file);
+  };
 
   const validate = (): string | null => {
     if (!description.trim()) return "Description is required.";
@@ -108,8 +129,9 @@ export default function CreateEventPage() {
       isFull,
       location: location.trim(),
       tags,
+      imageUrl,
     };
-  }, [demoUser, description, dateTimeLocal, participants, capacity, location, tags]);
+  }, [demoUser, description, dateTimeLocal, participants, capacity, location, tags, imageUrl]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +155,7 @@ export default function CreateEventPage() {
       setDateTimeLocal("");
       setCapacity(10);
       setTagInput("");
+      setImageUrl(undefined);
       if (demoUser) {
         setLocation(demoUser.location);
         setTags(demoUser.interests);
@@ -216,6 +239,28 @@ export default function CreateEventPage() {
                 onChange={(e) => setCapacity(Number(e.target.value))}
                 className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
               />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-neutral-800">Event Image (optional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => onImageSelected(e.target.files?.[0] ?? null)}
+                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none file:mr-3 file:rounded-xl file:border-0 file:bg-rose-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white focus:bg-white focus:ring-2 focus:ring-rose-200"
+              />
+              {imageUrl && (
+                <div className="space-y-2">
+                  <img src={imageUrl} alt="Event preview" className="h-40 w-full rounded-2xl object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl(undefined)}
+                    className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Tags */}

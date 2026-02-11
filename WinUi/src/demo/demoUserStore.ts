@@ -27,10 +27,12 @@ export async function loadDemoUserProfile(): Promise<DemoUserProfile> {
 
 export function saveDemoUserProfile(profile: DemoUserProfile) {
   localStorage.setItem(LS_KEY, JSON.stringify(profile));
+  window.dispatchEvent(new Event("flok-demo-profile-updated"));
 }
 
 export function resetDemoUserProfile() {
   localStorage.removeItem(LS_KEY);
+  window.dispatchEvent(new Event("flok-demo-profile-updated"));
 }
 
 export function exportDemoUserProfile(profile: DemoUserProfile) {

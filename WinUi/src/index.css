@@ -1,3 +1,4 @@
+@import url("https://cdn.jsdelivr.net/npm/@fontsource/open-dyslexic@5.2.5/index.css");
 @import "tailwindcss";
 
 :root {
@@ -27,6 +28,76 @@ body {
     radial-gradient(900px 600px at 95% 5%, rgba(248, 213, 150, 0.75) 0%, transparent 55%),
     var(--color-canvas);
   background-attachment: fixed;
+}
+
+html.a11y-large-text .text-xs {
+  font-size: 0.9rem !important;
+  line-height: 1.4 !important;
+}
+
+html.a11y-large-text .text-sm {
+  font-size: 1rem !important;
+  line-height: 1.55 !important;
+}
+
+html.a11y-large-text .text-base {
+  font-size: 1.125rem !important;
+  line-height: 1.65 !important;
+}
+
+html.a11y-large-text .text-lg {
+  font-size: 1.25rem !important;
+  line-height: 1.7 !important;
+}
+
+html.a11y-large-text .text-xl {
+  font-size: 1.4rem !important;
+  line-height: 1.7 !important;
+}
+
+html.a11y-large-text .text-2xl {
+  font-size: 1.65rem !important;
+  line-height: 1.35 !important;
+}
+
+html.a11y-high-contrast {
+  --color-canvas: #ffffff;
+  --color-surface: #ffffff;
+  --color-ink: #000000;
+  --color-muted: #1a1a1a;
+  --color-accent: #005fcc;
+  --color-mist: #ececec;
+  --color-chip: #efefef;
+}
+
+html.a11y-high-contrast body {
+  background: var(--color-canvas);
+}
+
+html.a11y-high-contrast a {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+html.a11y-dyslexia-font {
+  --font-sans: "Open Dyslexic", "OpenDyslexic", "Atkinson Hyperlegible", "Lexend", Verdana, Tahoma, Arial, sans-serif;
+  --font-display: "Open Dyslexic", "OpenDyslexic", "Atkinson Hyperlegible", "Lexend", Verdana, Tahoma, Arial, sans-serif;
+}
+
+html.a11y-dyslexia-font body {
+  line-height: 1.65;
+  letter-spacing: 0.02em;
+  word-spacing: 0.06em;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 75%, white);
+  outline-offset: 2px;
+}
+
+html.a11y-high-contrast :focus-visible {
+  outline: 3px solid #000;
+  outline-offset: 3px;
 }
 
 @keyframes fade-up {

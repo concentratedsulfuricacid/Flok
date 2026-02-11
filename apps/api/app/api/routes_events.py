@@ -90,7 +90,7 @@ def rsvp(event_id: str, request: RSVPRequest) -> RSVPResponse:
         rsvp_set = store.rsvps.setdefault(event_id, set())
         if request.user_id in rsvp_set:
             spots_left = opp.capacity - len(rsvp_set)
-            return RSVPResponse(event_id=event_id, status="ACCEPTED", spots_left=max(0, spots_left))
+            return RSVPResponse(event_id=event_id, status="CONFIRMED", spots_left=max(0, spots_left))
 
         spots_left = opp.capacity - len(rsvp_set)
         if spots_left <= 0:
@@ -102,7 +102,7 @@ def rsvp(event_id: str, request: RSVPRequest) -> RSVPResponse:
     # record feedback outside the lock to avoid deadlocks
     store.record_feedback({"user_id": request.user_id, "opp_id": event_id, "event": "accepted"})
 
-    return RSVPResponse(event_id=event_id, status="ACCEPTED", spots_left=max(0, spots_left))
+    return RSVPResponse(event_id=event_id, status="CONFIRMED", spots_left=max(0, spots_left))
 
 
 @router.get("/events/{event_id}/explain", response_model=ExplanationResponse)

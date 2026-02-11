@@ -113,7 +113,7 @@ def test_feedback_and_rsvp_and_explain_and_trending():
     # RSVP should accept, then full on second user
     resp = client.post(f"/events/{event_id}/rsvp", json={"user_id": user_id})
     assert resp.status_code == 200
-    assert resp.json()["status"] == "ACCEPTED"
+    assert resp.json()["status"] == "CONFIRMED"
 
     second_user = client.post(
         "/users",

@@ -10,6 +10,26 @@ export default defineConfig({
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
       },
+      "/feed": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/metrics": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/trending": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/demo": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+      "/seed": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
     },
   },
 });

@@ -72,8 +72,10 @@ def build_score_matrix(
     capacities = {opp.id: opp.capacity for opp in opps}
     pulse_map = pricing.compute_pulses(store, capacities, overrides=pricing_overrides)
 
+    newcomer_labels = {"newcomer", "first_time", "first-time", "new"}
     for user in users:
         score_matrix[user.id] = {}
+        is_newcomer = bool(user.cohort and user.cohort.lower() in newcomer_labels)
         for opp in opps:
             features, reason_chips = compute_feature_vector(user, opp, interactions)
             if features["availability_ok"] < 0.5:
@@ -92,7 +94,13 @@ def build_score_matrix(
                 pulse_centered=pulse_centered,
                 availability_ok=features["availability_ok"],
             )
-            s_ml = get_model().predict_proba(ml_features)
+            s_ml_raw = get_model().predict_proba(ml_features)
+            s_ml = s_ml_raw
+            newcomer_boost = 0.0
+            if is_newcomer and opp.beginner_friendly and settings.newcomer_boost > 0:
+                newcomer_boost = settings.newcomer_boost
+                s_ml = min(1.0, s_ml_raw * (1.0 + newcomer_boost))
+                reason_chips = list(reason_chips) + ["Beginner-friendly for newcomers"]
             price_adjustment = -pricing_cfg.lambda_price * pulse_centered
             score_adj = s_ml + price_adjustment
 
@@ -110,6 +118,8 @@ def build_score_matrix(
                     "travel_penalty": features["travel_penalty"],
                     "intensity_mismatch": features["intensity_mismatch"],
                     "novelty_bonus": features["novelty_bonus"],
+                    "s_ml_raw": s_ml_raw,
+                    "newcomer_boost": newcomer_boost,
                     "s_ml": s_ml,
                     "price": pulse,
                     "pulse_centered": pulse_centered,
@@ -135,8 +145,12 @@ def solve_assignment(
 
         return _solve_with_ortools(users, opps, score_matrix, capacities)
     except Exception as exc:  # pragma: no cover - fallback path
-        logger.warning("Falling back to greedy solver: %s", exc)
-        return _solve_greedy(users, score_matrix, capacities)
+        logger.warning("OR-Tools unavailable (%s). Trying NetworkX fallback.", exc)
+        try:
+            return _solve_with_networkx(users, opps, score_matrix, capacities)
+        except Exception as nx_exc:  # pragma: no cover - fallback path
+            logger.warning("Falling back to greedy solver: %s", nx_exc)
+            return _solve_greedy(users, score_matrix, capacities)
 
 
 def _solve_with_ortools(
@@ -215,6 +229,76 @@ def _solve_with_ortools(
             if opp_offset <= head < sink:
                 opp = opps[head - opp_offset]
                 assignments.append((user.id, opp.id))
+                assigned_users.add(user.id)
+                break
+
+    unassigned = [u.id for u in users if u.id not in assigned_users]
+    return assignments, unassigned
+
+
+def _solve_with_networkx(
+    users: List[User],
+    opps: List[Opportunity],
+    score_matrix: Dict[str, Dict[str, float]],
+    capacities: Dict[str, int],
+) -> Tuple[List[Tuple[str, str]], List[str]]:
+    """Solve with NetworkX min-cost flow (allows unassigned users)."""
+    import networkx as nx  # type: ignore
+
+    scores = [score for user_scores in score_matrix.values() for score in user_scores.values()]
+    max_score = max(scores, default=0.0)
+    if max_score < 0:
+        max_score = 0.0
+    scale = 100
+
+    def cost_for(score: float) -> int:
+        return int(round((max_score - score) * scale))
+
+    unassigned_cost = cost_for(0.0)
+
+    G = nx.DiGraph()
+    source = "source"
+    sink = "sink"
+    G.add_node(source, demand=-len(users))
+    G.add_node(sink, demand=len(users))
+
+    # Source -> users
+    for user in users:
+        user_node = f"user:{user.id}"
+        G.add_node(user_node, demand=0)
+        G.add_edge(source, user_node, capacity=1, weight=0)
+
+    # Users -> opps and users -> sink
+    for user in users:
+        user_node = f"user:{user.id}"
+        for opp in opps:
+            score = score_matrix.get(user.id, {}).get(opp.id)
+            if score is None:
+                continue
+            opp_node = f"opp:{opp.id}"
+            if opp_node not in G:
+                cap = max(0, capacities.get(opp.id, 0))
+                if cap > 0:
+                    G.add_node(opp_node, demand=0)
+                    G.add_edge(opp_node, sink, capacity=cap, weight=0)
+            if opp_node in G:
+                G.add_edge(user_node, opp_node, capacity=1, weight=cost_for(score))
+        G.add_edge(user_node, sink, capacity=1, weight=unassigned_cost)
+
+    flow = nx.min_cost_flow(G)
+
+    assignments: List[Tuple[str, str]] = []
+    assigned_users = set()
+
+    for user in users:
+        user_node = f"user:{user.id}"
+        user_flow = flow.get(user_node, {})
+        for node, amount in user_flow.items():
+            if amount <= 0:
+                continue
+            if isinstance(node, str) and node.startswith("opp:"):
+                opp_id = node.split("opp:", 1)[1]
+                assignments.append((user.id, opp_id))
                 assigned_users.add(user.id)
                 break
 

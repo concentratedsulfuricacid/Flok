@@ -335,15 +335,15 @@ export default function MapPage() {
 
   // IMPORTANT: render guard AFTER all hooks (prevents blank/crash)
   if (!user) {
-    return <div className="text-neutral-600">Loading profile…</div>;
+    return <div className="text-[var(--color-muted)]">Loading profile…</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Map</h1>
-          <p className="mt-2 text-neutral-600">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink)]">Map</h1>
+          <p className="mt-2 text-[var(--color-muted)]">
             MapTiler map with your events plotted at resolved coordinates.
           </p>
         </div>
@@ -356,8 +356,8 @@ export default function MapPage() {
             className={
               "inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold shadow-sm transition " +
               (highContrastMap
-                ? "border-neutral-900 bg-neutral-900 text-white"
-                : "border-rose-200 bg-white text-neutral-800 hover:bg-rose-50")
+                ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white"
+                : "border-[var(--color-border)] bg-white text-[var(--color-ink)] hover:bg-[var(--color-mist)]/55")
             }
           >
             {highContrastMap ? "High contrast: On" : "High contrast: Off"}
@@ -365,7 +365,7 @@ export default function MapPage() {
           <button
             onClick={() => load(user)}
             disabled={loading}
-            className="inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60"
+            className="flok-button-primary inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60"
           >
             {loading ? "Loading…" : "Refresh events"}
           </button>
@@ -373,14 +373,14 @@ export default function MapPage() {
       </div>
 
       {loadError && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="flok-error-card rounded-2xl px-4 py-3 text-sm">
           {loadError}
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         {/* Map */}
-        <div className="overflow-hidden rounded-3xl border border-rose-200 shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-[var(--color-border)] shadow-sm">
           <MapContainer
             center={[user.coords.lat, user.coords.lng]}
             zoom={14}
@@ -420,18 +420,15 @@ export default function MapPage() {
                 <Popup>
                   <div className="space-y-1">
                     <div className="font-semibold">{event.description}</div>
-                    <div className="text-sm text-neutral-700">By {event.creator}</div>
+                    <div className="text-sm text-[var(--color-muted)]">By {event.creator}</div>
                     <div className="text-sm">{new Date(event.dateTime).toLocaleString()}</div>
                     <div className="text-sm">
                       {event.participants.length}/{event.capacity} {event.isFull ? "(Full)" : ""}
                     </div>
-                    <div className="text-sm text-neutral-700">{event.location.name}</div>
+                    <div className="text-sm text-[var(--color-muted)]">{event.location.name}</div>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {event.tags.map((t) => (
-                        <span
-                          key={t}
-                          className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 ring-1 ring-rose-200"
-                        >
+                        <span key={t} className="flok-chip rounded-full px-2 py-0.5 text-xs font-semibold">
                           {t}
                         </span>
                       ))}
@@ -444,9 +441,9 @@ export default function MapPage() {
         </div>
 
         {/* Sidebar list */}
-        <div className="rounded-3xl border border-rose-200 bg-white p-5 shadow-sm">
-          <div className="text-sm font-semibold text-neutral-900">Demo Profile</div>
-          <div className="mt-2 text-sm text-neutral-600">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-white p-5 shadow-sm">
+          <div className="text-sm font-semibold text-[var(--color-ink)]">Demo Profile</div>
+          <div className="mt-2 text-sm text-[var(--color-muted)]">
             <div>
               <span className="font-medium">Name:</span> {user.name}
             </div>
@@ -464,24 +461,24 @@ export default function MapPage() {
             </div>
           </div>
 
-          <div className="mt-5 border-t border-rose-100 pt-4">
-            <div className="text-sm font-semibold text-neutral-900">
+          <div className="mt-5 border-t border-[var(--color-border)]/70 pt-4">
+            <div className="text-sm font-semibold text-[var(--color-ink)]">
               Nearby Events ({nearbyEvents.length})
             </div>
             <div className="mt-3 space-y-3">
               {nearbyEvents.length === 0 ? (
-                <div className="text-sm text-neutral-600">No events within 3km.</div>
+                <div className="text-sm text-[var(--color-muted)]">No events within 3km.</div>
               ) : (
                 nearbyEvents.map(({ event, distanceKm }, idx) => (
                   <div
                     key={`${event.description}-${idx}`}
-                    className="rounded-2xl border border-rose-200 bg-rose-50/40 p-3"
+                    className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-mist)]/45 p-3"
                   >
-                    <div className="font-semibold text-neutral-900">{event.description}</div>
-                    <div className="text-sm text-neutral-600">
+                    <div className="font-semibold text-[var(--color-ink)]">{event.description}</div>
+                    <div className="text-sm text-[var(--color-muted)]">
                       {event.location.name} · {distanceKm.toFixed(1)} km
                     </div>
-                    <div className="text-sm text-neutral-600">
+                    <div className="text-sm text-[var(--color-muted)]">
                       {event.participants.length}/{event.capacity}{" "}
                       {event.isFull ? "· Full" : ""}
                     </div>

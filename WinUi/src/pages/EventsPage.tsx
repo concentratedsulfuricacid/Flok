@@ -507,7 +507,7 @@ function DemoPanel({
               Demo scenario active. Toggle off Demo Lab to exit.
             </div>
           )}
-          {demoError && <div className="text-xs font-semibold text-rose-600">{demoError}</div>}
+          {demoError && <div className="text-xs font-semibold text-[var(--color-danger)]">{demoError}</div>}
 
           {scenario && (
             <div className="space-y-3 rounded-2xl bg-[var(--color-mist)]/80 p-3 text-xs text-[var(--color-muted)]">
@@ -851,7 +851,7 @@ export default function EventsPage() {
       eventId,
       action: "rsvp",
       prompt: targetEvent
-        ? `Confirm RSVP for \"${targetEvent.description}\"?`
+        ? `Confirm RSVP for "${targetEvent.description}"?`
         : "Confirm RSVP for this event?",
     });
   };
@@ -863,7 +863,7 @@ export default function EventsPage() {
       eventId,
       action: "cancel_rsvp",
       prompt: targetEvent
-        ? `Remove your RSVP for \"${targetEvent.description}\"?`
+        ? `Remove your RSVP for "${targetEvent.description}"?`
         : "Remove your RSVP for this event?",
     });
   };
@@ -970,7 +970,7 @@ export default function EventsPage() {
                 </div>
               ) : error ? (
                 <div className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow">
-                  <div className="text-sm font-semibold text-rose-600">Couldn’t load events</div>
+                  <div className="text-sm font-semibold text-[var(--color-danger)]">Couldn’t load events</div>
                   <div className="mt-2 text-sm text-[var(--color-muted)]">
                     {error}
                     <div className="mt-2 text-[11px] text-[var(--color-muted)]">
@@ -1149,10 +1149,10 @@ export default function EventsPage() {
             className={
               "rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl backdrop-blur " +
               (popup.tone === "success"
-                ? "border-emerald-200 bg-emerald-50/95 text-emerald-800"
+                ? "border-[var(--color-success-border)] bg-[var(--color-success-bg)] text-[var(--color-success)]"
                 : popup.tone === "error"
-                  ? "border-rose-200 bg-rose-50/95 text-rose-700"
-                  : "border-slate-200 bg-white/95 text-slate-700")
+                  ? "border-[var(--color-danger-border)] bg-[var(--color-danger-bg)] text-[var(--color-danger)]"
+                  : "border-[var(--color-border)] bg-white/95 text-[var(--color-muted)]")
             }
             role="status"
             aria-live="polite"
@@ -1163,7 +1163,7 @@ export default function EventsPage() {
       )}
 
       {confirmDialog && (
-        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-900/35 p-4">
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-[var(--color-overlay)] p-4">
           <div
             className="w-full max-w-md rounded-2xl border border-white/80 bg-white p-5 shadow-2xl"
             role="dialog"
@@ -1190,7 +1190,7 @@ export default function EventsPage() {
       )}
 
       {selectedEvent && (
-        <div className="fixed inset-0 z-[85] grid place-items-center bg-slate-900/35 p-4">
+        <div className="fixed inset-0 z-[85] grid place-items-center bg-[var(--color-overlay)] p-4">
           <div
             className="w-full max-w-xl rounded-3xl border border-white/80 bg-white p-6 shadow-2xl"
             role="dialog"

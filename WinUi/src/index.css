@@ -5,13 +5,29 @@
   --font-sans: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
   --font-display: "Fraunces", "Times New Roman", serif;
 
-  --color-canvas: #eef4f1;
+  --color-canvas: #edf3f0;
   --color-surface: #ffffff;
-  --color-ink: #16262b;
-  --color-muted: #5f6f73;
-  --color-accent: #2f8f83;
-  --color-mist: #e5efe8;
-  --color-chip: #dff2ec;
+  --color-ink: #102126;
+  --color-muted: #43585f;
+  --color-accent: #0b6b61;
+  --color-accent-strong: #084f48;
+  --color-border: #c6d7d2;
+  --color-mist: #e7f0ec;
+  --color-chip-bg: #e5f2ed;
+  --color-chip-text: #114f48;
+  --color-chip-border: #c0dad1;
+  --color-badge-bg: #fff4de;
+  --color-badge-text: #704d12;
+  --color-danger: #8d1c2f;
+  --color-danger-bg: #ffe8ed;
+  --color-danger-border: #f4b9c4;
+  --color-success: #0f5a34;
+  --color-success-bg: #e7f6ee;
+  --color-success-border: #b9e4c9;
+  --color-overlay: rgba(15, 23, 42, 0.35);
+
+  /* Backwards-compatible alias used by existing pages. */
+  --color-chip: var(--color-chip-bg);
 }
 
 * {
@@ -64,10 +80,24 @@ html.a11y-high-contrast {
   --color-canvas: #ffffff;
   --color-surface: #ffffff;
   --color-ink: #000000;
-  --color-muted: #1a1a1a;
-  --color-accent: #005fcc;
-  --color-mist: #ececec;
-  --color-chip: #efefef;
+  --color-muted: #1f1f1f;
+  --color-accent: #003ea8;
+  --color-accent-strong: #002e7c;
+  --color-border: #1a1a1a;
+  --color-mist: #ebebeb;
+  --color-chip-bg: #f0f0f0;
+  --color-chip-text: #000000;
+  --color-chip-border: #2a2a2a;
+  --color-badge-bg: #fff0a6;
+  --color-badge-text: #171200;
+  --color-danger: #7a0019;
+  --color-danger-bg: #ffe3e8;
+  --color-danger-border: #7a0019;
+  --color-success: #004b1f;
+  --color-success-bg: #e5f8ec;
+  --color-success-border: #004b1f;
+  --color-overlay: rgba(0, 0, 0, 0.62);
+  --color-chip: var(--color-chip-bg);
 }
 
 html.a11y-high-contrast body {
@@ -109,4 +139,73 @@ html.a11y-high-contrast :focus-visible {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.flok-text-muted {
+  color: var(--color-muted);
+}
+
+.flok-surface-card {
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+.flok-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-chip-border);
+  background: var(--color-chip-bg);
+  color: var(--color-chip-text);
+}
+
+.flok-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-badge-text) 22%, transparent);
+  background: var(--color-badge-bg);
+  color: var(--color-badge-text);
+}
+
+.flok-control {
+  border-color: var(--color-border);
+  background: color-mix(in srgb, var(--color-mist) 45%, white);
+  color: var(--color-ink);
+}
+
+.flok-control:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 70%, white);
+  outline-offset: 1px;
+}
+
+.flok-button-primary {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+.flok-button-primary:hover {
+  background: var(--color-accent-strong);
+}
+
+.flok-button-secondary {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-muted);
+}
+
+.flok-button-secondary:hover {
+  background: color-mix(in srgb, var(--color-mist) 52%, white);
+  color: var(--color-ink);
+}
+
+.flok-error-card {
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.flok-success-card {
+  border: 1px solid var(--color-success-border);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }

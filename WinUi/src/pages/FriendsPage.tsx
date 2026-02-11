@@ -22,9 +22,9 @@ export async function getFriendsList(): Promise<Friend[]> {
 
 function FriendCard({ friend }: { friend: Friend }) {
   return (
-    <div className="rounded-2xl border border-rose-200 bg-white p-4 shadow-sm">
-      <div className="text-sm text-neutral-500">Friend</div>
-      <div className="mt-1 text-base font-semibold text-neutral-900">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-white p-4 shadow-sm">
+      <div className="text-sm text-[var(--color-muted)]">Friend</div>
+      <div className="mt-1 text-base font-semibold text-[var(--color-ink)]">
         {friend.name}
       </div>
     </div>
@@ -58,17 +58,17 @@ export default function FriendsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink)]">
             Friends
           </h1>
-          <p className="mt-2 text-neutral-600">
+          <p className="mt-2 text-[var(--color-muted)]">
             Your friend list (API-backed). We’ll add more later.
           </p>
         </div>
 
         <button
           onClick={load}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60"
+          className="flok-button-primary inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60"
           disabled={loading}
         >
           <RefreshCw className={"h-4 w-4 " + (loading ? "animate-spin" : "")} />
@@ -76,27 +76,27 @@ export default function FriendsPage() {
         </button>
       </div>
 
-      <div className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
         {loading ? (
-          <div className="text-neutral-600">Loading friends…</div>
+          <div className="text-[var(--color-muted)]">Loading friends…</div>
         ) : error ? (
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-rose-700">
+            <div className="text-sm font-semibold text-[var(--color-danger)]">
               Couldn’t load friends
             </div>
-            <div className="text-sm text-neutral-600">
+            <div className="text-sm text-[var(--color-muted)]">
               {error}
-              <div className="mt-2 text-neutral-500">
+              <div className="mt-2 text-[var(--color-muted)]">
                 Expected endpoint: <span className="font-mono">GET /api/friends</span>
               </div>
             </div>
           </div>
         ) : friends.length === 0 ? (
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-neutral-800">
+            <div className="text-sm font-semibold text-[var(--color-ink)]">
               No friends yet
             </div>
-            <div className="text-sm text-neutral-600">
+            <div className="text-sm text-[var(--color-muted)]">
               When the API is ready, your friends will appear here as cards.
             </div>
           </div>

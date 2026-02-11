@@ -172,14 +172,14 @@ export default function CreateEventPage() {
 
   // IMPORTANT: render guard AFTER hooks
   if (!demoUser) {
-    return <div className="text-neutral-600">Loading profile…</div>;
+    return <div className="text-[var(--color-muted)]">Loading profile…</div>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Create Event</h1>
-        <p className="mt-2 text-neutral-600">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink)]">Create Event</h1>
+        <p className="mt-2 text-[var(--color-muted)]">
           Demo form. We’ll wire the backend later. Creator defaults to{" "}
           <span className="font-semibold">{demoUser.name}</span>.
         </p>
@@ -187,67 +187,67 @@ export default function CreateEventPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         {/* Form */}
-        <form onSubmit={onSubmit} className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
-          <div className="text-sm font-semibold text-neutral-900">Event Details</div>
+        <form onSubmit={onSubmit} className="rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
+          <div className="text-sm font-semibold text-[var(--color-ink)]">Event Details</div>
 
           <div className="mt-4 grid gap-4">
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Description</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g. Gentle yoga session for seniors"
-                className="min-h-[90px] rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control min-h-[90px] rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Creator</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Creator</label>
               <input
                 value={demoUser.name}
                 readOnly
-                className="rounded-2xl border border-rose-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700"
+                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-mist)]/40 px-4 py-3 text-sm text-[var(--color-muted)]"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Date & Time</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Date & Time</label>
               <input
                 type="datetime-local"
                 value={dateTimeLocal}
                 onChange={(e) => setDateTimeLocal(e.target.value)}
-                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Location</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Location</label>
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. Pasir Ris Park"
-                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Capacity</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Capacity</label>
               <input
                 type="number"
                 min={1}
                 value={capacity}
                 onChange={(e) => setCapacity(Number(e.target.value))}
-                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Event Image (optional)</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Event Image (optional)</label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => onImageSelected(e.target.files?.[0] ?? null)}
-                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none file:mr-3 file:rounded-xl file:border-0 file:bg-rose-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control rounded-2xl border px-4 py-3 text-sm outline-none file:mr-3 file:rounded-xl file:border-0 file:bg-[var(--color-accent)] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white focus:bg-white"
               />
               {imageUrl && (
                 <div className="space-y-2">
@@ -255,7 +255,7 @@ export default function CreateEventPage() {
                   <button
                     type="button"
                     onClick={() => setImageUrl(undefined)}
-                    className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                    className="flok-button-secondary rounded-xl px-3 py-2 text-xs font-semibold"
                   >
                     Remove image
                   </button>
@@ -265,14 +265,14 @@ export default function CreateEventPage() {
 
             {/* Tags */}
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Tags</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Tags</label>
 
               <div className="flex gap-2">
                 <input
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   placeholder="e.g. yoga"
-                  className="flex-1 rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                  className="flok-control flex-1 rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -283,7 +283,7 @@ export default function CreateEventPage() {
                 <button
                   type="button"
                   onClick={addTag}
-                  className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700"
+                  className="flok-button-primary rounded-2xl px-4 py-3 text-sm font-semibold"
                 >
                   Add
                 </button>
@@ -291,15 +291,12 @@ export default function CreateEventPage() {
 
               <div className="flex flex-wrap gap-2">
                 {tags.map((t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200"
-                  >
+                  <span key={t} className="flok-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold">
                     {t}
                     <button
                       type="button"
                       onClick={() => removeTag(t)}
-                      className="text-rose-500 hover:text-rose-800"
+                      className="text-[var(--color-chip-text)] hover:text-[var(--color-accent-strong)]"
                       aria-label={`Remove tag ${t}`}
                     >
                       ×
@@ -310,16 +307,16 @@ export default function CreateEventPage() {
             </div>
 
             {formError && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+              <div className="flok-error-card rounded-2xl p-3 text-sm">
                 {formError}
-                <div className="mt-1 text-xs text-rose-700">
+                <div className="mt-1 text-xs text-[var(--color-danger)]">
                   Expected endpoint: <span className="font-mono">POST /api/events</span>
                 </div>
               </div>
             )}
 
             {created && (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+              <div className="flok-success-card rounded-2xl p-3 text-sm">
                 Event created (demo)!
               </div>
             )}
@@ -327,7 +324,7 @@ export default function CreateEventPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60"
+              className="flok-button-primary rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm disabled:opacity-60"
             >
               {submitting ? "Creating…" : "Create Event"}
             </button>
@@ -335,11 +332,11 @@ export default function CreateEventPage() {
         </form>
 
         {/* Preview */}
-        <div className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
-          <div className="text-sm font-semibold text-neutral-900">Payload Preview</div>
-          <div className="mt-2 text-xs text-neutral-500">This is what we’ll POST to the backend.</div>
+        <div className="rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
+          <div className="text-sm font-semibold text-[var(--color-ink)]">Payload Preview</div>
+          <div className="mt-2 text-xs text-[var(--color-muted)]">This is what we’ll POST to the backend.</div>
 
-          <pre className="mt-4 max-h-[520px] overflow-auto rounded-2xl border border-rose-100 bg-rose-50/40 p-4 text-xs text-neutral-800">
+          <pre className="mt-4 max-h-[520px] overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-mist)]/45 p-4 text-xs text-[var(--color-ink)]">
 {JSON.stringify(payload ?? { note: "Fill in the form to see payload" }, null, 2)}
           </pre>
         </div>

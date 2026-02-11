@@ -79,14 +79,14 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return <div className="text-neutral-600">Loading profile…</div>;
+    return <div className="text-[var(--color-muted)]">Loading profile…</div>;
   }
 
   if (!profile) {
     return (
-      <div className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
-        <div className="text-sm font-semibold text-rose-700">Profile unavailable</div>
-        <div className="mt-2 text-sm text-neutral-600">{msg ?? "Unknown error."}</div>
+      <div className="rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
+        <div className="text-sm font-semibold text-[var(--color-danger)]">Profile unavailable</div>
+        <div className="mt-2 text-sm text-[var(--color-muted)]">{msg ?? "Unknown error."}</div>
       </div>
     );
   }
@@ -94,8 +94,8 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-neutral-900">Profile</h1>
-        <p className="mt-2 text-neutral-600">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink)]">Profile</h1>
+        <p className="mt-2 text-[var(--color-muted)]">
           Demo profile editor. Changes are saved to <span className="font-mono">localStorage</span>.
           You can export JSON if you want to replace the seed file manually.
         </p>
@@ -103,19 +103,19 @@ export default function ProfilePage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         {/* Form */}
-        <div className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Name</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Name</label>
               <input
                 value={profile.name}
                 onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Age</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Age</label>
               <input
                 type="number"
                 min={1}
@@ -123,33 +123,33 @@ export default function ProfilePage() {
                 onChange={(e) =>
                   setProfile({ ...profile, age: clamp(Number(e.target.value), 1, 120) })
                 }
-                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">Location</label>
+              <label className="text-sm font-medium text-[var(--color-ink)]">Location</label>
               <input
                 value={profile.location}
                 onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">
-                Interests <span className="text-neutral-500">(comma-separated)</span>
+              <label className="text-sm font-medium text-[var(--color-ink)]">
+                Interests <span className="text-[var(--color-muted)]">(comma-separated)</span>
               </label>
               <input
                 value={interestsText}
                 onChange={(e) => setInterestsFromText(e.target.value)}
-                className="rounded-2xl border border-rose-200 bg-rose-50/30 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-rose-200"
+                className="flok-control rounded-2xl border px-4 py-3 text-sm outline-none focus:bg-white"
               />
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-neutral-800">
-                Fitness Level <span className="text-neutral-500">(1–10)</span>
+              <label className="text-sm font-medium text-[var(--color-ink)]">
+                Fitness Level <span className="text-[var(--color-muted)]">(1–10)</span>
               </label>
 
               <input
@@ -160,13 +160,13 @@ export default function ProfilePage() {
                 onChange={(e) =>
                   setProfile({ ...profile, fitnessLevel: clamp(Number(e.target.value), 1, 10) })
                 }
-                className="w-full accent-rose-600"
+                className="w-full accent-[var(--color-accent)]"
               />
-              <div className="text-sm text-neutral-700">Current: {profile.fitnessLevel}/10</div>
+              <div className="text-sm text-[var(--color-muted)]">Current: {profile.fitnessLevel}/10</div>
             </div>
 
             {msg && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+              <div className="flok-success-card rounded-2xl p-3 text-sm">
                 {msg}
               </div>
             )}
@@ -174,7 +174,7 @@ export default function ProfilePage() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={onSave}
-                className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700"
+                className="flok-button-primary rounded-2xl px-4 py-3 text-sm font-semibold"
               >
                 Save Profile
               </button>
@@ -182,7 +182,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => exportDemoUserProfile(profile)}
-                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-rose-700 ring-1 ring-rose-200 hover:bg-rose-50"
+                className="flok-button-secondary rounded-2xl px-4 py-3 text-sm font-semibold"
               >
                 Export JSON
               </button>
@@ -190,7 +190,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={onReset}
-                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-neutral-700 ring-1 ring-rose-200 hover:bg-rose-50"
+                className="flok-button-secondary rounded-2xl px-4 py-3 text-sm font-semibold"
               >
                 Reset to Seed
               </button>
@@ -199,13 +199,13 @@ export default function ProfilePage() {
         </div>
 
         {/* Preview */}
-        <div className="rounded-3xl border border-rose-200 bg-white p-6 shadow-sm">
-          <div className="text-sm font-semibold text-neutral-900">Current DemoUser (live)</div>
-          <div className="mt-2 text-xs text-neutral-500">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-white p-6 shadow-sm">
+          <div className="text-sm font-semibold text-[var(--color-ink)]">Current DemoUser (live)</div>
+          <div className="mt-2 text-xs text-[var(--color-muted)]">
             This is what other pages should read from the store.
           </div>
 
-          <pre className="mt-4 max-h-[520px] overflow-auto rounded-2xl border border-rose-100 bg-rose-50/40 p-4 text-xs text-neutral-800">
+          <pre className="mt-4 max-h-[520px] overflow-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-mist)]/45 p-4 text-xs text-[var(--color-ink)]">
 {JSON.stringify(profile, null, 2)}
           </pre>
         </div>

@@ -253,6 +253,32 @@ const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: num
   return 2 * R * Math.asin(Math.sqrt(h));
 };
 
+const AREA_CENTERS: Array<{ name: string; lat: number; lng: number }> = [
+  { name: "Marina / Downtown", lat: 1.283, lng: 103.851 },
+  { name: "Jurong East", lat: 1.333, lng: 103.742 },
+  { name: "Tampines", lat: 1.349, lng: 103.944 },
+  { name: "Woodlands", lat: 1.436, lng: 103.786 },
+  { name: "Pasir Ris", lat: 1.373, lng: 103.949 },
+];
+
+const formatAreaLabel = (location?: string | null) => {
+  if (!location) return "Unknown area";
+  if (!location.includes(",")) return location;
+  const coords = parseLocation(location);
+  if (!coords) return location;
+
+  let nearest = AREA_CENTERS[0];
+  let best = Number.POSITIVE_INFINITY;
+  for (const area of AREA_CENTERS) {
+    const distance = haversineKm(coords, { lat: area.lat, lng: area.lng });
+    if (distance < best) {
+      best = distance;
+      nearest = area;
+    }
+  }
+  return nearest.name;
+};
+
 function EventCard({
   event,
   index,
@@ -320,7 +346,7 @@ function EventCard({
           <div>
             <div className="text-sm font-semibold text-[var(--color-ink)]">{event.creator}</div>
             <div className="text-xs text-[var(--color-muted)]">
-              {formatRelativeTime(dt)} · {event.location}
+              {formatRelativeTime(dt)} · {formatAreaLabel(event.location)}
             </div>
           </div>
         </div>
@@ -1209,7 +1235,7 @@ export default function EventsPage() {
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-[var(--color-accent)]" aria-hidden="true" />
                 <span className="font-semibold">Where:</span>
-                <span>{selectedEvent.location}</span>
+                <span>{formatAreaLabel(selectedEvent.location)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-[var(--color-accent)]" aria-hidden="true" />

@@ -133,6 +133,14 @@ def create_event(event: FrontendEventCreate) -> dict:
                 lng = float(lng_str.strip())
             except ValueError:
                 pass
+        else:
+            key = event.location.strip().lower()
+            named = {
+                "pasir ris east": (1.3728, 103.9493),
+                "pasir ris": (1.3728, 103.9493),
+            }
+            if key in named:
+                lat, lng = named[key]
 
         opp = Opportunity(
             id=event_id,
